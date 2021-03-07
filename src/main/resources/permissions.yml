@@ -1,0 +1,9 @@
+permissions:
+    heistmc.*:
+        description: Grants all permissions available in HeistMC.
+        children:
+            heistmc.create: true
+    
+    heistmc.create:
+        description: Allows a user to build a HeistMC map.
+        default: op

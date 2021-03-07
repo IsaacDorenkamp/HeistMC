@@ -1,0 +1,35 @@
+name: HeistMC
+main: anti.projects.heistmc.HeistMC
+version: 1.0
+author: AntiWarIsaac
+api-version: 1.16
+commands:
+  join:
+    description: "Join a Heist lobby"
+    usage: "Usage: /join"
+
+  leave:
+    description: "Leave a Heist"
+    usage: "Usage: /leave"
+
+  dbg:
+    description: "For debugging only. Used to break out of the game flow etc."
+    usage: "Usage: /dbg <command>"
+
+  build:
+    description: "Create a HeistMC map."
+    usage: "Usage: /build"
+    permission: heistmc.create
+    permission-message: You don't have creating privileges.
+
+  export:
+    description: "Export a HeistMC map."
+    usage: "Usage: /export <map name...>"
+    permission: heistmc.create
+    permission-message: You don't have creating privileges.
+
+  export-lobby:
+    description: "Export a HeistMC map as the map to be used for waiting lobbies."
+    usage: "Usage: /export-lobby"
+    permission: heistmc.create
+    permission-message: You don't have creating privileges.
