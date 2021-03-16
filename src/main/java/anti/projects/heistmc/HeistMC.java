@@ -40,6 +40,14 @@ public class HeistMC extends JavaPlugin {
     toRun.runTask(INSTANCE);
   }
   
+  public static int scheduleRepeatedTask(final Runnable r, long period) {
+    return Bukkit.getScheduler().scheduleSyncRepeatingTask(INSTANCE, r, 0L, period);
+  }
+  
+  public static void descheduleRepeatedTask(int taskId) {
+    Bukkit.getScheduler().cancelTask(taskId);
+  }
+  
   Logger log;
   
   private Server server;
@@ -48,6 +56,7 @@ public class HeistMC extends JavaPlugin {
   
   private GlobalEvents evts;
   private PlayerStateTracker tracker;
+  private EntityTracker entities;
   
   private InventoryPersist invPersist;
   
@@ -80,6 +89,9 @@ public class HeistMC extends JavaPlugin {
     
     tracker = new PlayerStateTracker();
     server.getPluginManager().registerEvents(tracker, this);
+    
+    entities = new EntityTracker();
+    server.getPluginManager().registerEvents(entities, this);
     
     log = server.getLogger();
     
@@ -132,6 +144,10 @@ public class HeistMC extends JavaPlugin {
   
   public PlayerStateTracker getStateTracker() {
     return tracker;
+  }
+  
+  public EntityTracker getEntityTracker() {
+    return entities;
   }
   
   @Override

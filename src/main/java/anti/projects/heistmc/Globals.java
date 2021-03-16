@@ -29,6 +29,7 @@ public class Globals {
   
   public static final String STRING_LOCATION_OBJECTIVE = "Location Objective";
   public static final String STRING_ITEM_OBJECTIVE = "Obtain Item Objective";
+  public static final String STRING_KILL_OBJECTIVE = "Kill Objective";
   
   public static final String STRING_DESTINATION = "Set Destination";
   public static final String STRING_EDIT = "Edit Objective";
@@ -41,6 +42,11 @@ public class Globals {
   
   public static final String STRING_SELECT_MAP = "Select Map";
   public static final String STRING_SET_SPAWN = "Set World Spawn";
+  
+  public static final String STRING_SELECT_TYPE = "Select Enemy Type";
+  public static final String STRING_PLACE_ONE = "Spawn One";
+  public static final String STRING_CONFIGURE_EQUIPMENT = "Configure Equipment";
+  public static final String STRING_TOGGLE_PLACEHOLDERS = "Show/Hide Placeholder Mobs";
   
   public static final String ID_LOBBY = "lobby";
   

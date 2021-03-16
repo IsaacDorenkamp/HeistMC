@@ -8,6 +8,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -42,6 +45,10 @@ public class HeistEvents implements Listener {
     } else {
       return false;
     }
+  }
+  
+  public boolean isForHeist(EntityEvent evt) {
+    return evt.getEntity().getWorld().equals(world.getWorld());
   }
   
   public HeistEvents(HeistWorld world, WorldManager mgr) {
@@ -91,6 +98,20 @@ public class HeistEvents implements Listener {
   public void playerInventoryChange(InventoryPickupItemEvent evt) {
     if (isForHeist(evt)) {
       checkObjective();
+    }
+  }
+  
+  @EventHandler
+  public void entityDeath(EntityDeathEvent evt) {
+    if (isForHeist(evt)) {
+      checkObjective();
+    }
+  }
+  
+  @EventHandler
+  public void entityCombust(EntityCombustEvent evt) {
+    if (isForHeist(evt)) {
+      evt.setCancelled(true);
     }
   }
   

@@ -91,6 +91,9 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
         Inventory inv = evt.getPlayer().getInventory();
         if (nametag != null) inv.remove(nametag);
         if (finish != null) inv.remove(finish);
+        
+        cfgmeta();
+        
         return true;
       } else {
         type = is.getType();
@@ -99,12 +102,21 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
       }
     }
   }
+  
+  private void cfgmeta() {
+    this.name = "OBTAIN";
+    this.description = "Find and pick up an item called " + ChatColor.BOLD + displayName;
+  }
 
   @Override
   public boolean onStartConfig(Player p) {
     nametag = Globals.getNamedItem(Material.NAME_TAG, Globals.STRING_NAME_ITEM);
     finish = Globals.getNamedItem(Material.WRITTEN_BOOK, Globals.STRING_FINISH);
     HashMap<Integer, ItemStack> stacks = p.getInventory().addItem(nametag, finish);
+    if (stacks.size() > 0) {
+      MessageUtil.send(p, ChatColor.BOLD + "" + ChatColor.RED + "Please free up some space in your inventory.");
+      p.getInventory().removeItem(nametag, finish);
+    }
     return stacks.size() == 0;
   }
 
@@ -128,6 +140,8 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
     
     type = _m;
     displayName = _displayName;
+    
+    cfgmeta();
   }
   
   @Override

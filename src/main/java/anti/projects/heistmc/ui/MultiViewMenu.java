@@ -64,12 +64,12 @@ public class MultiViewMenu extends Menu {
     
     addMenuListener(new MenuListener() {
 
-      public void itemSelected(int slot, Material icon, String name) {
+      public void itemSelected(int slot, Material icon, String name, boolean isShift) {
         if (pushedViews.size() == 0) {
-          MultiViewMenu.this.base.itemSelected(slot, icon, name);
+          MultiViewMenu.this.base.itemSelected(slot, icon, name, isShift);
         } else {
           MenuPage current = pushedViews.get(pushedViews.size() - 1);
-          current.itemSelected(slot, icon, name);
+          current.itemSelected(slot, icon, name, isShift);
         }
       }
       

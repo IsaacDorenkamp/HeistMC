@@ -15,9 +15,11 @@ public class ObjectiveSetTracker {
   private Consumer<MissionObjective> callback = null;
   
   private List<MissionObjective> objectives;
+  private BuildWorld forWorld;
   
-  public ObjectiveSetTracker(List<MissionObjective> tracking) {
+  public ObjectiveSetTracker(List<MissionObjective> tracking, BuildWorld forWorld) {
     this.objectives = tracking;
+    this.forWorld = forWorld;
   }
   
   public List<MissionObjective> getObjectives() {
@@ -51,7 +53,7 @@ public class ObjectiveSetTracker {
   public boolean onInteract(PlayerInteractEvent evt) {
     if (configuring) {
       if (evt.getPlayer().equals(actor)) {
-        boolean isFinished = constructing.tryConfigAction(evt);
+        boolean isFinished = constructing.tryConfigAction(evt, forWorld);
         if (isFinished) {
           stopConfiguring();
         }

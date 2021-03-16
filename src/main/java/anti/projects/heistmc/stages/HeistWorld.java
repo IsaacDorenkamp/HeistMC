@@ -94,6 +94,8 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
       return false;
     }
     
+    state.getCurrentObjective().initialize(this);
+    
     if (map != null) {
       try {
         this.world = mgr.copyFrom(map, false);
@@ -126,8 +128,8 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
   
   public void checkNextObjective() {
     MissionObjective obj = state.getCurrentObjective();
-    System.out.println("Current: " + obj);
     if (obj.isComplete(this)) {
+      obj.cleanup(this);
       boolean isFinished = state.next();
       if (isFinished) {
         finish(mgr.getMainWorld().getSpawnLocation());
@@ -135,6 +137,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
       } else {
         // change individual displays!
         MissionObjective newCur = state.getCurrentObjective();
+        newCur.initialize(this);
         MessageUtil.sendToRoom(this, String.format("OBJECTIVE: %s", ChatColor.YELLOW + "" + ChatColor.BOLD + newCur.getDescription()));
         MessageUtil.roomTitle(this, String.format("OBJECTIVE: %s", newCur.getName()), ChatColor.YELLOW + newCur.getDescription());
       }

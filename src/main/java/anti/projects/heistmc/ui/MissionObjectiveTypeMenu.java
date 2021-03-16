@@ -7,9 +7,7 @@ import org.bukkit.entity.Player;
 
 import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.MessageUtil;
-import anti.projects.heistmc.mission.ItemObjective;
-import anti.projects.heistmc.mission.LocationObjective;
-import anti.projects.heistmc.mission.MissionObjective;
+import anti.projects.heistmc.mission.*;
 import anti.projects.heistmc.stages.ObjectiveSetTracker;
 
 public class MissionObjectiveTypeMenu extends MenuPage {
@@ -56,6 +54,25 @@ public class MissionObjectiveTypeMenu extends MenuPage {
         }
         viewer.closeInventory();
       }
+    });
+    
+    addItem(15, Material.DIAMOND_SWORD, Globals.STRING_KILL_OBJECTIVE, new MenuItemListener() {
+
+      @Override
+      public void onSelected() {
+        Player viewer = parent.getViewer();
+        if (target.isConfiguring()) {
+          MessageUtil.send(viewer,  "You are already configuring an objective!");
+        } else {
+          target.startConfiguring(viewer, new KillObjective(), new Consumer<MissionObjective>() {
+            public void accept(MissionObjective product) {
+              target.getObjectives().add(product);
+            }
+          });
+        }
+        viewer.closeInventory();
+      }
+      
     });
     
     addItem(40, Material.BOOK, Globals.STRING_BACK, new MenuItemListener() {

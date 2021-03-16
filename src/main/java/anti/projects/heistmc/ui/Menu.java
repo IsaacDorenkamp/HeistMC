@@ -28,7 +28,7 @@ public abstract class Menu implements MenuView {
     Material type = selected == null ? null : selected.getType();
     String name = selected == null ? null : selected.getItemMeta().getDisplayName();
     for (MenuListener ml : listeners) {
-      ml.itemSelected(slot, type, name);
+      ml.itemSelected(slot, type, name, evt.isShiftClick());
     }
     evt.setCancelled(true);
   }

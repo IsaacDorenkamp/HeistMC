@@ -1,5 +1,6 @@
 package anti.projects.heistmc.ui;
 
-public interface MenuItemListener {
-  public void onSelected();
+public abstract class MenuItemListener {
+  public abstract void onSelected();
+  public void onShiftSelected() {}
 }

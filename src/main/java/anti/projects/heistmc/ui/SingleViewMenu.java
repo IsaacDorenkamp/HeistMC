@@ -57,8 +57,8 @@ public class SingleViewMenu extends Menu {
     
     addMenuListener(new MenuListener() {
 
-      public void itemSelected(int slot, Material icon, String name) {
-        menu.itemSelected(slot, icon, name);
+      public void itemSelected(int slot, Material icon, String name, boolean isShift) {
+        menu.itemSelected(slot, icon, name, isShift);
       }
       
     });

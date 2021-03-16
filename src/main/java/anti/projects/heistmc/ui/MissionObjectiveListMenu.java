@@ -18,6 +18,8 @@ public class MissionObjectiveListMenu extends MenuPage {
   private int page = 0;
   private int toUse = -1;
   
+  private Consumer<MissionObjective> onDelete = null;
+  
   private ObjectiveSetTracker tracker;
   private MissionObjective selected = null;
   
@@ -28,6 +30,10 @@ public class MissionObjectiveListMenu extends MenuPage {
     this.ref = ref;
     this.tracker = tracker;
     construct();
+  }
+  
+  public void setDeleteCallback(Consumer<MissionObjective> onDelete) {
+    this.onDelete = onDelete;
   }
   
   @Override
@@ -42,14 +48,12 @@ public class MissionObjectiveListMenu extends MenuPage {
 
     addItem(18, Material.END_CRYSTAL, Globals.STRING_PREVIOUS_PAGE, new MenuItemListener() {
       public void onSelected() {
-        use(-1);
         setPage(page - 1);
       }
     });
 
     addItem(26, Material.END_CRYSTAL, Globals.STRING_NEXT_PAGE, new MenuItemListener() {
       public void onSelected() {
-        use(-1);
         setPage(page + 1);
       }
     });
@@ -77,8 +81,11 @@ public class MissionObjectiveListMenu extends MenuPage {
     addItem(47, Material.BARRIER, Globals.STRING_DELETE, new MenuItemListener() {
       public void onSelected() {
         if (toUse != -1) {
+          if (onDelete != null) {
+            onDelete.accept(ref.get(toUse));
+          }
           ref.remove(toUse);
-          toUse = -1;
+          use(-1);
           boolean isGoodPage = setPage(page);
           if (!isGoodPage) {
             setPage(page - 1);
@@ -108,7 +115,7 @@ public class MissionObjectiveListMenu extends MenuPage {
     }
     
     if (selected != null) {
-      addItem(SELECTION_DISPLAY_INDEX, selected.getDisplayIcon(), selected.toString(), null);
+      addItem(SELECTION_DISPLAY_INDEX, selected.getDisplayIcon(), selected.getName(), null);
     } else {
       addItem(SELECTION_DISPLAY_INDEX, Material.BLACK_STAINED_GLASS_PANE, " ", null);
     }
@@ -127,13 +134,21 @@ public class MissionObjectiveListMenu extends MenuPage {
           continue;
         }
         MissionObjective obj = ref.get(i);
-        addItem(19 + (i - startIdx), obj.getDisplayIcon(), obj.toString(), new UseListener(i));
+        addItem(19 + (i - startIdx), obj.getDisplayIcon(), obj.getName(), obj.getDescription(), new UseListener(i));
       }
       render();
       return true;
     } else {
       return false;
     }
+  }
+  
+  private void swap(int first, int second) {
+    MissionObjective temp = ref.get(first);
+    ref.set(first, ref.get(second));
+    ref.set(second, temp);
+    setPage(page); // reload the page
+    render();
   }
   
   private static final int OPTIONS_MENU_START_INDEX = 29;
@@ -165,13 +180,20 @@ public class MissionObjectiveListMenu extends MenuPage {
     render();
   }
   
-  private final class UseListener implements MenuItemListener {
+  private final class UseListener extends MenuItemListener {
     private final int idx;
     public UseListener(int idx) {
       this.idx = idx;
     }
     public void onSelected() {
       use(idx);
+    }
+    
+    @Override
+    public void onShiftSelected() {
+      if (toUse != -1) {
+        swap(idx, toUse);
+      }
     }
   }
 }

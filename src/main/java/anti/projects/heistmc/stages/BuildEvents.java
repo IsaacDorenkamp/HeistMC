@@ -14,7 +14,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -89,6 +91,10 @@ public class BuildEvents implements Listener {
     return evt.getBlock().getWorld().equals(world.getWorld());
   }
   
+  private boolean isForBuild(EntityEvent evt) {
+    return (evt.getEntity().getWorld().equals(world.getWorld()));
+  }
+  
   @EventHandler
   public void playerQuit(PlayerQuitEvent evt) {
     if (isForBuild(evt)) {
@@ -161,12 +167,15 @@ public class BuildEvents implements Listener {
         ItemStack cur = evt.getCurrentItem();
         if (Globals.isNamedItem(cur, Material.NETHER_STAR, Globals.STRING_EXIT)
             || Globals.isNamedItem(cur, Material.BOOK, Globals.STRING_BUILD_MENU)
-            || Globals.isNamedItem(cur, Material.STONE, Globals.STRING_CREATE_BLOCK)) {
+            || Globals.isNamedItem(cur, Material.COMPASS, Globals.STRING_SET_SPAWN)
+            || Globals.isNamedItem(cur, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
           evt.setResult(Result.DENY);
           evt.setCancelled(true);
           clicked.setItemOnCursor(null);
         }
-      } else if (clicked instanceof Player) {
+      }
+      
+      if (clicked instanceof Player) {
         MenuView viewing = world.getMenu((Player)clicked);
         if (viewing != null) {
           if (evt.getClickedInventory().equals(viewing.getInventoryView().getTopInventory())) {
@@ -182,6 +191,14 @@ public class BuildEvents implements Listener {
           }
         }
       }
+    }
+  }
+  
+  @EventHandler
+  public void entityCombust(EntityCombustEvent evt) {
+    // stop build entities from being on fire
+    if (isForBuild(evt)) {
+      evt.setCancelled(true);
     }
   }
   
@@ -215,7 +232,8 @@ public class BuildEvents implements Listener {
       ItemStack drop = evt.getItemDrop().getItemStack();
       if (Globals.isNamedItem(drop, Material.COMPASS, Globals.STRING_SET_SPAWN)
           || Globals.isNamedItem(drop, Material.BOOK, Globals.STRING_BUILD_MENU)
-          || Globals.isNamedItem(drop, Material.NETHER_STAR, Globals.STRING_EXIT)) {
+          || Globals.isNamedItem(drop, Material.NETHER_STAR, Globals.STRING_EXIT)
+          || Globals.isNamedItem(drop, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
         evt.setCancelled(true);
       }
     }
@@ -251,6 +269,9 @@ public class BuildEvents implements Listener {
           MessageUtil.send(evt.getPlayer(), "Spawn location set to " + ChatColor.ITALIC + String.format("(%d, %d, %d)",
               l.getBlockX(), l.getBlockY(), l.getBlockZ()));
           useItem = false;
+        } else if (Globals.isNamedItem(is, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
+          world.togglePlaceholderMobs();
+          useItem = false;
         } else if (is != null) {
           // TODO - this fix sucks lol. do something else
           if (is.getType().isBlock() && evt.getClickedBlock() != null) {
@@ -271,7 +292,7 @@ public class BuildEvents implements Listener {
       if (he instanceof Player) {
         Player p = (Player)he;
         if (world.getMenu(p) != null) {
-          world.menuRevoked(p);
+          if (world.getMenu(p).getInventoryView().getTopInventory().equals(evt.getInventory())) world.menuRevoked(p);
         }
       }
     }

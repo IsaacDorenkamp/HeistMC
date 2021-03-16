@@ -1,11 +1,15 @@
 package anti.projects.heistmc.ui;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.bukkit.Material;
 
 import anti.projects.heistmc.Globals;
+import anti.projects.heistmc.HeistMC;
+import anti.projects.heistmc.mission.KillObjective;
 import anti.projects.heistmc.mission.MissionObjective;
+import anti.projects.heistmc.stages.BuildWorld;
 import anti.projects.heistmc.stages.ObjectiveSetTracker;
 
 public class MissionObjectiveMenu extends MenuPage {
@@ -28,7 +32,17 @@ public class MissionObjectiveMenu extends MenuPage {
     
     addItem(13, Material.WRITTEN_BOOK, Globals.STRING_VIEW_OBJECTIVES, new MenuItemListener( ) {
       public void onSelected() {
-        parent.pushView(new MissionObjectiveListMenu(parent, ref, target));
+        // quick way to do this, not the best form but still reliable
+        final BuildWorld bw = BuildWorld.getInstanceFor(HeistMC.getInstance(), parent.getViewer());
+        MissionObjectiveListMenu menu = new MissionObjectiveListMenu(parent, ref, target);
+        menu.setDeleteCallback(new Consumer<MissionObjective>() {
+          public void accept(MissionObjective obj) {
+            if (obj instanceof KillObjective) {
+              bw.removePlaceholderMobsFor((KillObjective)obj);
+            }
+          }
+        });
+        parent.pushView(menu);
       }
     });
     
