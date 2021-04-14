@@ -26,9 +26,19 @@ import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.mission.MissionObjective;
 import anti.projects.heistmc.persist.InventoryPersist;
+import anti.projects.heistmc.persist.PlayerStatePersist;
 
 public class HeistWorld implements ChatRoom, CommandExecutor {
   private static ArrayList<HeistWorld> INSTANCES = new ArrayList<HeistWorld>();
+  
+  public static HeistWorld getInstanceForWorld(World w) {
+    for (HeistWorld instance : INSTANCES) {
+      if (w.equals(instance.world)) {
+        return instance;
+      }
+    }
+    return null;
+  }
   
   public static HeistWorld getInstanceForPlayer(Player p) {
     for (HeistWorld hw : INSTANCES) {
@@ -47,6 +57,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
   private MapManager mapMgr;
   private PlayerStateTracker tracker;
   private InventoryPersist persistence;
+  private PlayerStatePersist ps_persistence;
   
   // heist world state
   private HeistWorldData data = null;
@@ -71,6 +82,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     mapMgr = p.getMapManager();
     tracker = p.getStateTracker();
     persistence = p.getInventoryPersist();
+    ps_persistence = p.getPlayerStatePersist();
     evts = new HeistEvents(this, mgr);
     this.world = null;
     
@@ -168,6 +180,9 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
       if (persistence.hasEntry(p)) {
         persistence.popInventory(p);
       }
+      if (ps_persistence.hasEntry(p)) {
+        ps_persistence.popPlayerState(p);
+      }
       p.teleport(mgr.getMainWorld().getSpawnLocation());
       tracker.setState(p, PlayerState.ONLINE);
     }
@@ -176,6 +191,12 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     if (inHeist.size() == 0) {
       cleanup_map();
       inProgress = false;
+    }
+  }
+  
+  public void evacuate(String message) {
+    while (inHeist.size() > 0) {
+      removePlayer(inHeist.get(0), message);
     }
   }
   
@@ -192,7 +213,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
   }
   
   private volatile boolean transferring;
-  public void finish(Location to) {
+  public void finish(Location to, boolean success, String subtitle) {
     // TODO - rearrange to have title first, wait time of, say, 5 seconds, then teleport.
     transferring = true;
     for (Player p : inHeist) {
@@ -200,14 +221,22 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
       if (persistence.hasEntry(p)) {
         persistence.popInventory(p);
       }
+      if (ps_persistence.hasEntry(p)) {
+        ps_persistence.popPlayerState(p);
+      }
       tracker.setState(p, PlayerState.ONLINE);
     }
     transferring = false;
     
-    MessageUtil.roomTitle(this, ChatColor.GREEN + "HEIST PASSED");
+    
+    MessageUtil.roomTitle(this, success ? ChatColor.GREEN + "HEIST PASSED" : ChatColor.RED + "HEIST FAILED", subtitle);
     inHeist.clear();
     cleanup_map();
     inProgress = false;
+  }
+  
+  public void finish(Location to) {
+    finish(to, true, "");
   }
   
   public boolean isInProgress() {

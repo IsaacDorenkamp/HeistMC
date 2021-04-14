@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.UUID;
 
@@ -15,6 +16,9 @@ import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 
+import anti.projects.heistmc.stages.HeistWorld;
+import anti.projects.heistmc.stages.Lobby;
+
 public class WorldManager {
   
   private static boolean delete(File dir) {
@@ -22,14 +26,17 @@ public class WorldManager {
       if (dir.isDirectory()) {
         for (File f : dir.listFiles()) {
           if (f.isDirectory()) {
-            delete(f);
-            f.delete();
+            boolean result = delete(f);
+            boolean dirResult = f.delete();
+            if (!(result && dirResult)) return false;
+          } else {
+            if (!f.delete()) return false;
           }
         }
+        return true;
       } else {
-        dir.delete();
+        return dir.delete();
       }
-      return true;
     } else {
       return false;
     }
@@ -41,7 +48,6 @@ public class WorldManager {
   
   private static ArrayList<World> worlds = new ArrayList<World>();
   private static ArrayList<World> allWorlds = new ArrayList<World>();
-  private static int counter = 1;
   
   private Server server;
   private World mainWorld = null;
@@ -50,15 +56,31 @@ public class WorldManager {
     this.server = server;
   }
   
-  public boolean delete(World w) {
+  private void depopulate(World w) {
+    Lobby forWorld = Lobby.getLobbyForWorld(w);
+    if (forWorld != null) {
+      forWorld.evacuate("Server is shutting down or reloading!");
+      forWorld.deinitialize();
+    }
+    
+    HeistWorld heistForWorld = HeistWorld.getInstanceForWorld(w);
+    if (heistForWorld != null) {
+      heistForWorld.evacuate("Server is shutting down or reloading!");
+    }
+    
+    // last resort
     for (Player p : w.getPlayers()) {
       // kick all players to main world spawn
       p.teleport(getMainWorld().getSpawnLocation());
     }
-    
-    Bukkit.unloadWorld(w.getName(), false);
+  }
+  
+  public boolean delete(World w) {
+    System.out.println("Unload success: " + Bukkit.unloadWorld(w.getName(), false));
     File f = w.getWorldFolder();
-    return delete(f);
+    boolean deleted = delete(f);
+    boolean fdeleted = f.delete();
+    return deleted && fdeleted;
   }
   
   public boolean deleteAndRemove(World w) {
@@ -69,8 +91,12 @@ public class WorldManager {
   }
   
   public void purge() {
-    for (World w : worlds) {
-      delete(w);
+    Iterator<World> it = worlds.iterator();
+    while (it.hasNext()) {
+      World w = it.next();
+      it.remove();
+      depopulate(w);
+      deleteAndRemove(w);
     }
   }
   

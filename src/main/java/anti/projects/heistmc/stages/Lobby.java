@@ -7,21 +7,17 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 
 import anti.projects.heistmc.Globals;
@@ -33,12 +29,20 @@ import anti.projects.heistmc.api.ChatRoom;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.persist.InventoryPersist;
+import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.ui.SidebarDisplay;
 
 public class Lobby implements ChatRoom {
   
   private static Lobby[] lobbies = new Lobby[Globals.MAX_LOBBIES];
   private volatile boolean transferring = false;
+  
+  public static Lobby getLobbyForWorld(World w) {
+    for (Lobby lobby : lobbies) {
+      if (w.equals(lobby.getWorld())) return lobby;
+    }
+    return null;
+  }
   
   public static void createAllLobbies(HeistMC p) {
     for (int i = 0; i < lobbies.length; i++) {
@@ -87,6 +91,7 @@ public class Lobby implements ChatRoom {
   private WorldManager mgr;
   private PlayerStateTracker tracker;
   private InventoryPersist persistence;
+  private PlayerStatePersist ps_persistence;
   
   private SidebarDisplay display;
   
@@ -142,7 +147,12 @@ public class Lobby implements ChatRoom {
     mgr = p.getWorldManager();
     tracker = p.getStateTracker();
     persistence = p.getInventoryPersist();
+    ps_persistence = p.getPlayerStatePersist();
     target = HeistWorld.createInstance(p);
+  }
+  
+  public void deinitialize() {
+    this.lobbyWorld = null;
   }
   
   public String getSelectedMap() {
@@ -182,7 +192,15 @@ public class Lobby implements ChatRoom {
     for (Player p : new ArrayList<Player>(inLobby)) {
       removePlayer(p, null, false);
       if (goToTarget) target.putPlayer(p);
-      else p.teleport(mgr.getMainWorld().getSpawnLocation());
+      else {
+        if (persistence.hasEntry(p)) {
+          persistence.popInventory(p);
+        }
+        if (ps_persistence.hasEntry(p)) {
+          ps_persistence.popPlayerState(p);
+        }
+        p.teleport(mgr.getMainWorld().getSpawnLocation());
+      }
     }
     
     display.setLine(2, "Map: " + ChatColor.GRAY + "None", false);
@@ -204,11 +222,16 @@ public class Lobby implements ChatRoom {
   
   public boolean putPlayer(Player p, String message) {
     persistence.pushInventory(p);
+    ps_persistence.setPlayerState(p);
     
     PlayerState state = tracker.getState(p);
     if (state.equals(PlayerState.HEIST) || state.equals((PlayerState.LOBBY)) || inLobby.size() >= Globals.MAX_PLAYERS) {
       return false;
     }
+    
+    p.setHealth(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+    p.setFoodLevel(20);
+    p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, Integer.MAX_VALUE, 0));
     
     p.getInventory().clear();
     p.getInventory().setItem(8, Globals.getLeaveStar());
@@ -232,11 +255,18 @@ public class Lobby implements ChatRoom {
     return true;
   }
   
+  public void evacuate(String message) {
+    while (inLobby.size() > 0) {
+      Player p = inLobby.get(0);
+      removePlayer(p, message);
+    }
+  }
+  
   public void removePlayer(Player p, String message, boolean teleport) {
-    // TODO important - pop inventory cache entry
     display.unshow(p);
     display.setLine(1, String.format("Players: %d/%d", inLobby.size(), Globals.MAX_PLAYERS), false);
     p.getInventory().clear();
+    p.removePotionEffect(PotionEffectType.SATURATION);
     
     boolean reassign_controls = false;
     if (p.getInventory().first(Globals.getNamedItem(Material.ARROW, Globals.STRING_START_HEIST)) >= 0) {
@@ -258,6 +288,10 @@ public class Lobby implements ChatRoom {
       if (persistence.hasEntry(p)) {
         persistence.popInventory(p);
       }
+      if (ps_persistence.hasEntry(p)) {
+        ps_persistence.popPlayerState(p);
+      }
+      
       tracker.setState(p, PlayerState.ONLINE);
     }
     if (message != null) MessageUtil.sendToRoom(this, message);

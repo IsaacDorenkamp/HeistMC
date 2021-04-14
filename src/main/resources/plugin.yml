@@ -33,3 +33,21 @@ commands:
     usage: "Usage: /export-lobby"
     permission: heistmc.create
     permission-message: You don't have creating privileges.
+
+  inv-reload:
+    description: "Reload inventory persistence"
+    usage: "Usage: /inv-reload"
+    permission: heistmc.developer
+    permission-message: You aren't a developer.
+
+  inv-push:
+    description: "Push an entry on the inventory persist stack."
+    usage: "Usage: /inv-push"
+    permission: heistmc.developer
+    permission-message: You aren't a developer.
+
+  inv-pop:
+    description: "Pop an entry off the inventory persist stack."
+    usage: "Usage: /inv-pop"
+    permission: heistmc.developer
+    permission-message: You aren't a developer.

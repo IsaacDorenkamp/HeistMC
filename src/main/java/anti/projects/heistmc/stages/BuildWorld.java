@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +50,19 @@ import anti.projects.heistmc.ui.MenuView;
 
 public class BuildWorld implements ChatRoom, CommandExecutor {
   private static HashMap<UUID, BuildWorld> INSTANCES = new HashMap<UUID, BuildWorld>();
+  
+  public static Collection<BuildWorld> getInstances() {
+    return INSTANCES.values();
+  }
+  
+  public static BuildWorld getInstanceForWorld(World w) {
+    for (BuildWorld instance : INSTANCES.values()) {
+      if (instance.world.equals(w)) {
+        return instance;
+      }
+    }
+    return null;
+  }
 
   private List<Player> building;
 
@@ -66,6 +80,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   private HashMap<Player, MenuView> menus = new HashMap<Player, MenuView>();
   
   private HashMap<LivingEntity, KillObjective> placeholderMobs = new HashMap<LivingEntity, KillObjective>();
+  private HashMap<Player, GameMode> onEnter = new HashMap<Player, GameMode>();
 
   private static Logger log = null;
 
@@ -179,19 +194,13 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       return;
 
     persistence.pushInventory(p);
-    p.setHealth(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
-    p.setFoodLevel(20);
-    p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, Integer.MAX_VALUE, 0));
-    p.setGameMode(GameMode.SURVIVAL); // has to be in survival mode to prevent wacky stuff from happening with GUI
-                                      // items :/
+    onEnter.put(p, p.getGameMode());
+    
+    p.setGameMode(GameMode.CREATIVE);
+    
     p.getInventory().clear();
-    p.getInventory().setItem(5, Globals.getNamedItem(Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS));
-    p.getInventory().setItem(6, Globals.getNamedItem(Material.COMPASS, Globals.STRING_SET_SPAWN));
     p.getInventory().setItem(7, Globals.getMenuBook());
     p.getInventory().setItem(8, Globals.getLeaveStar());
-    p.setAllowFlight(true);
-
-    p.setFlying(true);
 
     building.add(p);
     p.teleport(world.getSpawnLocation());
@@ -200,14 +209,20 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   
   public void removePlayer(Player p) {
     building.remove(p);
+    GameMode gm = onEnter.get(p);
+    p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);
     p.getInventory().clear();
-    p.setAllowFlight(false);
-    p.removePotionEffect(PotionEffectType.SATURATION);
     p.teleport(mgr.getMainWorld().getSpawnLocation());
     tracker.setState(p, PlayerState.ONLINE);
     
     if (persistence.hasEntry(p)) {
       persistence.popInventory(p);
+    }
+  }
+  
+  public void evacuate() {
+    while (building.size() > 0) {
+      removePlayer(building.get(0));
     }
   }
   
@@ -219,6 +234,10 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       MessageUtil.sendToRoom(this, "Showing placeholder mobs.");
       showPlaceholderMobs();
     }
+  }
+  
+  public boolean isPlaceholderMob(LivingEntity ent) {
+    return placeholderMobs.containsKey(ent);
   }
   
   public void addPlaceholderMob(KillObjective objFor, KillObjective.Entry source) {

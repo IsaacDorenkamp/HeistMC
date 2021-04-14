@@ -13,6 +13,24 @@
                   <target>1.8</target>
               </configuration>
           </plugin>
+          <!-- The below plugin executes the package and install script automatically after maven install! -->
+          <plugin>
+		    <groupId>org.codehaus.mojo</groupId>
+		    <artifactId>exec-maven-plugin</artifactId>
+		    <version>1.5.0</version>
+		    <executions>
+		      <execution>
+		        <phase>install</phase>
+		        <goals>
+		           <goal>exec</goal>
+		        </goals>
+		        <configuration>
+		          <executable>${project.basedir}/scripts/package-and-install.bat</executable>
+		          <workingDirectory>${project.basedir}/scripts</workingDirectory>
+		        </configuration>
+		      </execution>
+		    </executions>
+		  </plugin>
       </plugins>
    </build>
    <repositories>
@@ -39,6 +57,14 @@
            <version>LATEST</version><!--change this value depending on the version-->
            <type>jar</type>
            <scope>provided</scope>
+       </dependency>
+       <dependency>
+           <groupId>org.bukkit</groupId>
+           <artifactId>craftbukkit</artifactId>
+           <version>1.16.5</version>
+           <type>jar</type>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/lib/spigot-1.16.5.jar</systemPath>
        </dependency>
        <dependency>
            <groupId>net.wesjd</groupId>

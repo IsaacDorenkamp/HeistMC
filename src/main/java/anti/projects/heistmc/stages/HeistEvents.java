@@ -1,5 +1,6 @@
 package anti.projects.heistmc.stages;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -9,8 +10,10 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -19,6 +22,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 
+import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.WorldManager;
 
@@ -88,6 +92,22 @@ public class HeistEvents implements Listener {
   }
   
   @EventHandler
+  public void playerDamage(EntityDamageEvent evt) {
+    if (isForHeist(evt) && evt.getEntity() instanceof Player) {
+      // TODO - allow multiple deaths
+      final Player p = (Player)evt.getEntity();
+      if (p.getHealth() - evt.getDamage() <= 0) {
+        evt.setCancelled(true);
+        Bukkit.getScheduler().scheduleSyncDelayedTask(HeistMC.getInstance(), new Runnable() {
+          public void run() {
+            world.finish(mgr.getMainWorld().getSpawnLocation(), false, String.format("%s died.", p.getDisplayName()));
+          }
+        });
+      }
+    }
+  }
+  
+  @EventHandler
   public void playerMove(PlayerMoveEvent evt) {
     if (isForHeist(evt)) {
       checkObjective();
@@ -104,6 +124,7 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void entityDeath(EntityDeathEvent evt) {
     if (isForHeist(evt)) {
+      evt.getDrops().clear();
       checkObjective();
     }
   }

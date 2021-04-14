@@ -18,6 +18,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.persist.InventoryPersist;
+import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.stages.BuildWorld;
 import anti.projects.heistmc.stages.HeistWorld;
 import anti.projects.heistmc.stages.Lobby;
@@ -59,6 +60,7 @@ public class HeistMC extends JavaPlugin {
   private EntityTracker entities;
   
   private InventoryPersist invPersist;
+  private PlayerStatePersist psPersist;
   
   @Override
   public void onEnable() {
@@ -110,12 +112,37 @@ public class HeistMC extends JavaPlugin {
       }
     }
     
-    evts = new GlobalEvents(worldMgr, invPersist);
+    try {
+      psPersist = PlayerStatePersist.load(new File(data, Globals.PLAYER_STATE_PERSIST_FILE));
+    } catch (FileNotFoundException fnfe) {
+      log.info("No player state persist file, using fresh handler");
+    } catch (IOException ioe) {
+      log.severe("Failed to read player state file!");
+    } catch (IllegalArgumentException iae) {
+      log.severe("Player state file seems to be corrupted, using blank handler");
+    } finally {
+      if (psPersist == null) {
+        psPersist = new PlayerStatePersist();
+      }
+    }
+    
+    evts = new GlobalEvents(worldMgr, invPersist, psPersist);
     server.getPluginManager().registerEvents(evts, this);
   }
   
   @Override
   public void onDisable() {
+    try {
+      Class.forName("anti.projects.heistmc.stages.BuildWorld");
+      for (BuildWorld bw : BuildWorld.getInstances()) {
+        bw.evacuate();
+      }
+      BuildWorld.saveAll();
+    } catch(ClassNotFoundException cnfe) {
+      log.warning("Build worlds not initialized; ignoring");
+    }
+
+    // unload and delete non-persistent worlds
     worldMgr.purge();
     try {
       invPersist.save(new File(getDataFolder(), Globals.INVENTORY_PERSIST_FILE));
@@ -123,15 +150,19 @@ public class HeistMC extends JavaPlugin {
       log.severe("FAILED TO SAVE INVENTORY PERSIST FILE - players will lose their inventory data!");
     }
     
-    // unload and delete non-persistent worlds
-    // it is important that this is done last
-    // so that if it fails (due to a ClassNotFoundException),
-    // it won't prevent the other of these from running
-    BuildWorld.saveAll();
+    try {
+      psPersist.save(new File(getDataFolder(), Globals.PLAYER_STATE_PERSIST_FILE));
+    } catch (IOException ioe) {
+      log.severe("FAILED TO SAVE PLAYER STATE PERSIST FILE - players may notice unexpected health/food levels");
+    }
   }
   
   public InventoryPersist getInventoryPersist() {
     return invPersist;
+  }
+  
+  public PlayerStatePersist getPlayerStatePersist() {
+    return psPersist;
   }
   
   public WorldManager getWorldManager() {
@@ -226,6 +257,36 @@ public class HeistMC extends JavaPlugin {
         }
         return true;
       }
+    } else if (cmd.equals("inv-reload")) {
+      try {
+        invPersist.save(new File(Globals.INVENTORY_PERSIST_FILE));
+      } catch(Exception e) {
+        MessageUtil.send(sender, ChatColor.RED + "Reload failed.");
+        return true;
+      }
+      try {
+        invPersist.loadFrom(new File(Globals.INVENTORY_PERSIST_FILE));
+      } catch(Exception e) {
+        MessageUtil.send(sender, ChatColor.RED + "Reload failed.");
+        return true;
+      }
+      MessageUtil.send(sender, ChatColor.GREEN + "Reload succeeded.");
+      return true;
+    } else if (cmd.equals("inv-push")) {
+      if (sender instanceof Player) {
+        invPersist.pushInventory((Player)sender);
+        MessageUtil.send(sender, "Inventory pushed.");
+      }
+      return true;
+    } else if (cmd.equals("inv-pop")) {
+      if (sender instanceof Player) {
+        if (invPersist.hasEntry((Player)sender)) {
+          invPersist.popInventory((Player)sender);
+        } else {
+          MessageUtil.send(sender, "There is no inventory entry for you.");
+        }
+      }
+      return true;
     } else if (sender instanceof Player) {
       Player p = (Player)sender;
       HeistWorld instanceForPlayer = HeistWorld.getInstanceForPlayer(p);

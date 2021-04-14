@@ -53,6 +53,7 @@ public class Globals {
   public static final String HEIST_WORLD_DATA_FILE = "heist.dat";
   public static final String MAP_MASTER_FILE = "maps.txt";
   public static final String INVENTORY_PERSIST_FILE = "inventory_persist.dat";
+  public static final String PLAYER_STATE_PERSIST_FILE = "player_state_persist.dat";
   
   public static ItemStack getNamedItem(Material type, String name) {
     ItemStack stack = new ItemStack(type, 1);

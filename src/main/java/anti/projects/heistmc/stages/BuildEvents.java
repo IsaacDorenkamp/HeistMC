@@ -1,7 +1,6 @@
 package anti.projects.heistmc.stages;
 
-import java.util.HashMap;
-
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
@@ -12,15 +11,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityEvent;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -28,14 +26,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import anti.projects.heistmc.Globals;
-import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.WorldManager;
 import anti.projects.heistmc.ui.BuildMenu;
 import anti.projects.heistmc.ui.MenuView;
-import net.md_5.bungee.api.ChatColor;
 
 public class BuildEvents implements Listener {
   private BuildWorld world;
@@ -79,16 +76,16 @@ public class BuildEvents implements Listener {
     }
   }
   
+  private boolean isForBuild(InventoryOpenEvent evt) {
+    return evt.getPlayer() instanceof Player && world.hasPlayer((Player)evt.getPlayer());
+  }
+  
   private boolean isForBuild(InventoryCloseEvent evt) {
     return evt.getPlayer() instanceof Player && world.hasPlayer((Player)evt.getPlayer());
   }
   
   private boolean isForBuild(InventoryDragEvent evt) {
     return evt.getWhoClicked() instanceof Player && world.hasPlayer((Player)evt.getWhoClicked());
-  }
-  
-  private boolean isForBuild(BlockDamageEvent evt) {
-    return evt.getBlock().getWorld().equals(world.getWorld());
   }
   
   private boolean isForBuild(EntityEvent evt) {
@@ -120,22 +117,6 @@ public class BuildEvents implements Listener {
       }
     }
   }
-
-  private static final long BREAK_THRESHOLD = 250L;
-  private HashMap<Player, Long> lastBreak = new HashMap<Player, Long>();
-  @EventHandler
-  public void blockDamage(BlockDamageEvent evt) {
-    if (isForBuild(evt)) {
-      long actionTime = System.currentTimeMillis();
-      Long pLastBreak = lastBreak.get(evt.getPlayer());
-      if (pLastBreak == null || (pLastBreak != null && (actionTime - pLastBreak) >= BREAK_THRESHOLD)) {
-        evt.setInstaBreak(true);
-        lastBreak.put(evt.getPlayer(), actionTime);
-      } else {
-        evt.setCancelled(true);
-      }
-    }
-  }
   
   @EventHandler
   public void entitySpawn(PlayerUnleashEntityEvent evt) {
@@ -159,20 +140,22 @@ public class BuildEvents implements Listener {
     }
   }
   
+  private void populateInventory(Inventory inv) {
+    if (!Globals.isNamedItem(inv.getItem(7), Material.BOOK, Globals.STRING_BUILD_MENU)) {
+      inv.setItem(7, Globals.getMenuBook());
+    }
+    if (!Globals.isNamedItem(inv.getItem(8), Material.NETHER_STAR, Globals.STRING_EXIT)) {
+      inv.setItem(8, Globals.getLeaveStar());
+    }
+  }
+  
   @EventHandler
   public void inventoryClicked(InventoryClickEvent evt) {
     if (isForBuild(evt)) {
       HumanEntity clicked = evt.getWhoClicked();
       if (evt.getWhoClicked().getInventory().equals(evt.getClickedInventory())) {
-        ItemStack cur = evt.getCurrentItem();
-        if (Globals.isNamedItem(cur, Material.NETHER_STAR, Globals.STRING_EXIT)
-            || Globals.isNamedItem(cur, Material.BOOK, Globals.STRING_BUILD_MENU)
-            || Globals.isNamedItem(cur, Material.COMPASS, Globals.STRING_SET_SPAWN)
-            || Globals.isNamedItem(cur, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
-          evt.setResult(Result.DENY);
-          evt.setCancelled(true);
-          clicked.setItemOnCursor(null);
-        }
+        final Inventory inv = evt.getWhoClicked().getInventory();
+        populateInventory(inv);
       }
       
       if (clicked instanceof Player) {
@@ -183,11 +166,6 @@ public class BuildEvents implements Listener {
             evt.setResult(Result.DENY);
             clicked.setItemOnCursor(null);
             viewing.onInventoryClick(evt);
-          } else if (evt.getClickedInventory().equals(clicked.getInventory())) {
-            if (evt.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-              evt.setCancelled(true);
-              evt.setResult(Result.DENY);
-            }
           }
         }
       }
@@ -254,30 +232,16 @@ public class BuildEvents implements Listener {
       
       if (evt.getAction() == Action.RIGHT_CLICK_AIR || evt.getAction() == Action.RIGHT_CLICK_BLOCK) {
         ItemStack is = evt.getItem();
+        int slot = evt.getPlayer().getInventory().getHeldItemSlot();
         boolean useItem = true;
-        if (Globals.isNamedItem(is, Material.NETHER_STAR, Globals.STRING_EXIT)) {
+        if (Globals.isNamedItem(is, Material.NETHER_STAR, Globals.STRING_EXIT) && slot == 8) {
           world.removePlayer(evt.getPlayer());
           useItem = false;
-        } else if (Globals.isNamedItem(is, Material.BOOK, Globals.STRING_BUILD_MENU)) {
+        } else if (Globals.isNamedItem(is, Material.BOOK, Globals.STRING_BUILD_MENU) && slot == 7) {
           Player p = evt.getPlayer();
           BuildMenu menu = new BuildMenu(p, world);
           world.showMenu(menu, p);
           useItem = false;
-        } else if (Globals.isNamedItem(is, Material.COMPASS, Globals.STRING_SET_SPAWN)) {
-          Location l = evt.getPlayer().getLocation().getBlock().getLocation(); // snap location to block
-          world.getWorld().setSpawnLocation(l);
-          MessageUtil.send(evt.getPlayer(), "Spawn location set to " + ChatColor.ITALIC + String.format("(%d, %d, %d)",
-              l.getBlockX(), l.getBlockY(), l.getBlockZ()));
-          useItem = false;
-        } else if (Globals.isNamedItem(is, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
-          world.togglePlaceholderMobs();
-          useItem = false;
-        } else if (is != null) {
-          // TODO - this fix sucks lol. do something else
-          if (is.getType().isBlock() && evt.getClickedBlock() != null) {
-            is.setAmount(is.getAmount() + 1);
-            evt.getPlayer().getInventory().setItemInMainHand(is);
-          }
         }
         evt.setUseItemInHand(useItem ? Result.ALLOW : Result.DENY);
         evt.setUseInteractedBlock(useItem ? Result.ALLOW : Result.DENY);
@@ -286,9 +250,17 @@ public class BuildEvents implements Listener {
   }
   
   @EventHandler
+  public void inventoryOpened(InventoryOpenEvent evt) {
+    if (isForBuild(evt)) {
+      evt.getPlayer().setGameMode(GameMode.SURVIVAL);
+    }
+  }
+  
+  @EventHandler
   public void inventoryClosed(InventoryCloseEvent evt) {
     if (isForBuild(evt)) {
       HumanEntity he = evt.getPlayer();
+      he.setGameMode(GameMode.CREATIVE);
       if (he instanceof Player) {
         Player p = (Player)he;
         if (world.getMenu(p) != null) {

@@ -29,5 +29,3 @@ rmdir /s /q net
 
 echo Restoring original path...
 path %TEMP_PATH%
-
-pause

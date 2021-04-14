@@ -7,3 +7,7 @@ permissions:
     heistmc.create:
         description: Allows a user to build a HeistMC map.
         default: op
+
+    heistmc.developer:
+        description: Developer privileges.
+        default: op

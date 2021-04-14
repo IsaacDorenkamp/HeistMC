@@ -1,11 +1,12 @@
 package anti.projects.heistmc.persist;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,7 +15,6 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +23,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import anti.projects.heistmc.api.Stack;
 
 public class InventoryPersist {
+  
+  private static Class<?> CraftItemMeta = null;
+  private static Constructor<?> CraftItemMetaConstructor = null;
+  
+  // TODO - figure out why this isn't working...???
+  static {
+    try {
+      CraftItemMeta = Class.forName("org.bukkit.craftbukkit.v1_16_R3.inventory.CraftMetaItem");
+      CraftItemMetaConstructor = CraftItemMeta.getDeclaredConstructor(Map.class);
+      CraftItemMetaConstructor.setAccessible(true);
+    } catch (ClassNotFoundException | NoSuchMethodException | SecurityException e) {
+      e.printStackTrace();
+    }
+  }
   
   private static Collector<Stack<?>, ?, Integer> NOT_NULL_OR_EMPTY = Collectors.reducing(0, new Function<Stack<?>, Integer>() {
 
@@ -103,8 +117,100 @@ public class InventoryPersist {
   
   // TODO IMPORTANT - save ItemMeta!
   
+  private static enum MapTypes {
+    STRING, INTEGER, MAP, ENUM, SKIP, META
+  }
+  
+  @SuppressWarnings("unchecked")
+  private static void writeMap(ObjectOutputStream dos, Map<String, Object> map) throws IOException {
+    dos.writeInt(map.size());
+    for (String s : map.keySet()) {
+      // write key
+      dos.writeUTF(s);
+      
+      // write data type
+      Object obj = map.get(s);
+      if (obj instanceof String) {
+        dos.writeUTF(MapTypes.STRING.toString());
+        dos.writeUTF((String)obj);
+      } else if (obj instanceof Integer) {
+        dos.writeUTF(MapTypes.INTEGER.toString());
+        dos.writeInt((Integer)obj);
+      } else if (obj instanceof Map<?, ?>) {
+        dos.writeUTF(MapTypes.MAP.toString());
+        writeMap(dos, (Map<String, Object>)obj);
+      } else if (obj.getClass().isEnum()) {
+        dos.writeUTF(MapTypes.ENUM.toString());
+        String enumName = obj.getClass().getName();
+        dos.writeUTF(enumName);
+        dos.writeUTF(obj.toString());
+      } else if (obj instanceof ItemMeta) {
+        dos.writeUTF(MapTypes.META.toString());
+        ItemMeta im = (ItemMeta)obj;
+        Map<String, Object> sub = im.serialize();
+        writeMap(dos, sub);
+      } else {
+        System.out.println("Skipping object of type " + obj.getClass().getName());
+        dos.writeUTF(MapTypes.SKIP.toString());
+        continue;
+      }
+    }
+  }
+  
+  private static Map<String, Object> readMap(ObjectInputStream dis) throws IOException {
+    Map<String, Object> out = new HashMap<String, Object>();
+    int entries = dis.readInt();
+    for (int i = 0; i < entries; i++) {
+      String key = dis.readUTF();
+      String _type = dis.readUTF();
+      MapTypes type = MapTypes.valueOf(_type);
+      switch(type) {
+      case STRING:
+        String sval = dis.readUTF();
+        out.put(key, sval);
+        break;
+      case INTEGER:
+        Integer ival = dis.readInt();
+        out.put(key, ival);
+        break;
+      case MAP:
+        Map<String, Object> obj = readMap(dis);
+        out.put(key, obj);
+        break;
+      case ENUM:
+        String enumName = dis.readUTF();
+        String valueName = dis.readUTF();
+        Class<?> classFor;
+        try {
+          classFor = Class.forName(enumName);
+        } catch (ClassNotFoundException e) {
+          // brutal, but necessary
+          continue;
+        }
+        @SuppressWarnings("unchecked") Object val = Enum.valueOf((Class<? extends Enum>)classFor, valueName);
+        out.put(key, val);
+        break;
+      case META:
+        Map<String, Object> metadata = readMap(dis);
+        ItemMeta im = null;
+        try {
+          im = (ItemMeta)CraftItemMetaConstructor.newInstance(metadata);
+        } catch (Exception e) {
+          e.printStackTrace();
+          System.out.println("Failed to construct metadata.");
+          continue;
+        }
+        out.put(key, im);
+        break;
+      case SKIP:
+        break;
+      }
+    }
+    return out;
+  }
+  
   public void save(File f) throws IOException {
-    DataOutputStream dos = new DataOutputStream(new FileOutputStream(f));
+    ObjectOutputStream dos = new ObjectOutputStream(new FileOutputStream(f));
     
     // Format:
     //   writeInt (number of uuids)
@@ -133,8 +239,8 @@ public class InventoryPersist {
           ItemStack items = inv.get(slot);
           if (items == null) continue; // skip any empty entries, just in case
           dos.writeByte(slot);
-          dos.writeByte(items.getAmount());
-          dos.writeUTF(items.getType().toString());
+          Map<String, Object> stack = items.serialize();
+          writeMap(dos, stack);
         }
       }
     }
@@ -142,8 +248,13 @@ public class InventoryPersist {
     dos.close();
   }
   
+  public void loadFrom(File f) throws IOException, IllegalArgumentException {
+    InventoryPersist ip = load(f);
+    this.entries = ip.entries;
+  }
+  
   public static InventoryPersist load(File f) throws IOException, IllegalArgumentException {
-    DataInputStream dis = new DataInputStream(new FileInputStream(f));
+    ObjectInputStream dis = new ObjectInputStream(new FileInputStream(f));
     
     // first, readInt for the number of UUIDs there are entries for
     int players = dis.readInt();
@@ -160,18 +271,13 @@ public class InventoryPersist {
         current.push(map);
         for (int mapping = 0; mapping < mappings; mapping++) {
           int slot = (int)dis.readByte();
-          int amount = (int)dis.readByte();
-          Material m; 
-          try {
-            m = Material.valueOf(dis.readUTF());
-          } catch (IllegalArgumentException iae) {
-            // we can skip this entry,
-            // an invalid material will not
-            // ruin the rest of the file.
-            continue;
+          Map<String, Object> data = readMap(dis);
+          ItemStack stack = ItemStack.deserialize(data);
+          Object meta = data.get("meta");
+          if (meta instanceof ItemMeta) {
+            stack.setItemMeta((ItemMeta)meta);
           }
-          ItemStack is = new ItemStack(m, amount);
-          map.put(slot, is);
+          map.put(slot, stack);
         }
       }
     }

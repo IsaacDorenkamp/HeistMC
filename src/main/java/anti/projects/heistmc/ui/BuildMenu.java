@@ -1,19 +1,13 @@
 package anti.projects.heistmc.ui;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
-import org.bukkit.inventory.ItemStack;
 
 import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.stages.BuildWorld;
+import net.md_5.bungee.api.ChatColor;
 
 public class BuildMenu extends MultiViewMenu {
   
@@ -32,15 +26,24 @@ public class BuildMenu extends MultiViewMenu {
   
   private void constructBaseMenu() {
     MenuPage base = getBaseMenu();
-    base.addItem(11, Material.SCAFFOLDING, "Creative Inventory", new MenuItemListener() {
+    base.addItem(11, Material.COMPASS, Globals.STRING_SET_SPAWN, new MenuItemListener() {
       public void onSelected() {
-        pushView(new CreativeInventory(viewer, BuildMenu.this));
+        Location l = viewer.getLocation();
+        world.getWorld().setSpawnLocation(l);
+        MessageUtil.send(viewer, "Spawn location set to " + ChatColor.ITALIC + String.format("(%d, %d, %d)",
+            l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+        viewer.closeInventory();
       }
     });
-    
     base.addItem(13, Material.BOOK, "Mission Objectives", new MenuItemListener() {
       public void onSelected() {
         pushView(new MissionObjectiveMenu(world.getHeistWorldData().getObjectives(), BuildMenu.this, world.getMissionObjectiveTracker()));
+      }
+    });
+    base.addItem(15, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS, new MenuItemListener() {
+      public void onSelected() {
+        world.togglePlaceholderMobs();
+        viewer.closeInventory();
       }
     });
   }
