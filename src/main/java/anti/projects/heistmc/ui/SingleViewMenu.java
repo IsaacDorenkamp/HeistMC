@@ -2,6 +2,7 @@ package anti.projects.heistmc.ui;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -14,12 +15,12 @@ public class SingleViewMenu extends Menu {
   private Inventory inv;
   private String title;
   private InventoryView view;
-  private Player pFor;
+  final private Player pFor;
   private MenuPage menu;
   
   private boolean showing = false;
   
-  public SingleViewMenu(String title, int slots, Player pFor, MenuPage base) {
+  public SingleViewMenu(String title, int slots, final Player pFor, MenuPage base) {
     this.slots = slots;
     this.title = title;
     this.menu = base;
@@ -57,8 +58,9 @@ public class SingleViewMenu extends Menu {
     
     addMenuListener(new MenuListener() {
 
-      public void itemSelected(int slot, Material icon, String name, boolean isShift) {
-        menu.itemSelected(slot, icon, name, isShift);
+      public boolean itemSelected(int slot, Material icon, String name, boolean isShift) {
+        pFor.playSound(pFor.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        return menu.itemSelected(slot, icon, name, isShift);
       }
       
     });

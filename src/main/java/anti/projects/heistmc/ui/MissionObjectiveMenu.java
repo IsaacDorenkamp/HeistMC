@@ -38,8 +38,16 @@ public class MissionObjectiveMenu extends MenuPage {
         menu.setDeleteCallback(new Consumer<MissionObjective>() {
           public void accept(MissionObjective obj) {
             if (obj instanceof KillObjective) {
-              bw.removePlaceholderMobsFor((KillObjective)obj);
+              KillObjective ko = (KillObjective)obj;
+              if (ko.equals(bw.getSelectedPlaceholders())) {
+                bw.selectPlaceholderMobs(null);
+              }
             }
+          }
+        });
+        menu.setKillSelectCallback(new Consumer<KillObjective>() {
+          public void accept(KillObjective obj) {
+            bw.selectPlaceholderMobs(obj);
           }
         });
         parent.pushView(menu);

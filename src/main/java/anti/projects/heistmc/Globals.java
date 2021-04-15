@@ -31,6 +31,7 @@ public class Globals {
   public static final String STRING_ITEM_OBJECTIVE = "Obtain Item Objective";
   public static final String STRING_KILL_OBJECTIVE = "Kill Objective";
   
+  public static final String STRING_SET_LOCATION_NAME = "Set Location Name (Optional)";
   public static final String STRING_DESTINATION = "Set Destination";
   public static final String STRING_EDIT = "Edit Objective";
   public static final String STRING_DELETE = "Delete Objective";
@@ -46,7 +47,8 @@ public class Globals {
   public static final String STRING_SELECT_TYPE = "Select Enemy Type";
   public static final String STRING_PLACE_ONE = "Spawn One";
   public static final String STRING_CONFIGURE_EQUIPMENT = "Configure Equipment";
-  public static final String STRING_TOGGLE_PLACEHOLDERS = "Show/Hide Placeholder Mobs";
+  public static final String STRING_HIDE_PLACEHOLDERS = "Hide Placeholder Mobs";
+  public static final String STRING_REMOVE_MOB = "Remove Enemy";
   
   public static final String ID_LOBBY = "lobby";
   
@@ -94,11 +96,21 @@ public class Globals {
   public static String getMaterialName(Material m) {
     String name = nameCache.get(m);
     if (name == null) {
-      String ret = new ItemStack(m, 1).getItemMeta().getDisplayName();
+      String ret = _format(m.toString());
       nameCache.put(m, ret);
       return ret;
     } else {
       return name;
     }
+  }
+  
+  private static String _format(String s) {
+    String[] parts = s.split("_");
+    String[] newParts = new String[parts.length];
+    int idx = 0;
+    for (String part : parts) {
+      newParts[idx++] = (part.substring(0, 1).toUpperCase()) + (part.substring(1).toLowerCase());
+    }
+    return String.join(" ", newParts);
   }
 }

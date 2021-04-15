@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.Consumer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -79,7 +81,8 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   private BuildEvents evts;
   private HashMap<Player, MenuView> menus = new HashMap<Player, MenuView>();
   
-  private HashMap<LivingEntity, KillObjective> placeholderMobs = new HashMap<LivingEntity, KillObjective>();
+  private KillObjective selected = null;
+  private HashMap<LivingEntity, KillObjective.Entry> placeholderMobs = new HashMap<>();
   private HashMap<Player, GameMode> onEnter = new HashMap<Player, GameMode>();
 
   private static Logger log = null;
@@ -116,8 +119,6 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       } catch (IOException e) {
         m.getServer().getLogger().severe("ERROR while loading Heist world data: " + e.toString());
       }
-      
-      showPlaceholderMobs();
     }
   }
 
@@ -125,7 +126,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     for (BuildWorld bw : INSTANCES.values()) {
       try {
         bw.save();
-        bw.hidePlaceholderMobs();
+        bw.removePlaceholderMobs();
       } catch (IOException ioe) {
         if (log != null)
           log.severe("FAILED to save heist data for world " + bw.getWorld().getName());
@@ -134,9 +135,9 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   }
 
   public void save() throws IOException {
-    boolean wasShowing = placeholders;
+    KillObjective wasShowing = selected;
     // get rid of placeholder mobs
-    hidePlaceholderMobs();
+    removePlaceholderMobs();
     
     // get rid of any other living entities
     for (Entity e : world.getEntities()) {
@@ -148,9 +149,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     // save world, obviously
     world.save();
     
-    if (wasShowing) {
-      showPlaceholderMobs();
-    }
+    selectPlaceholderMobs(wasShowing);
 
     // save heist world data
     File dir = world.getWorldFolder();
@@ -226,23 +225,23 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     }
   }
   
-  public void togglePlaceholderMobs() {
-    if (placeholders) {
-      MessageUtil.sendToRoom(this, "Hiding placeholder mobs.");
-      hidePlaceholderMobs();
-    } else {
-      MessageUtil.sendToRoom(this, "Showing placeholder mobs.");
-      showPlaceholderMobs();
-    }
+  public KillObjective getSelectedPlaceholders() {
+    return selected;
   }
   
-  public boolean isPlaceholderMob(LivingEntity ent) {
+  public void removeEntryForPlaceholder(Entity ent) {
+    if (selected != null) {
+      selected.remove(placeholderMobs.get(ent));
+    }
+    placeholderMobs.remove(ent);
+    ent.remove();
+  }
+  
+  public boolean isPlaceholderMob(Entity ent) {
     return placeholderMobs.containsKey(ent);
   }
   
   public void addPlaceholderMob(KillObjective objFor, KillObjective.Entry source) {
-    if (!placeholders) return; // just ignore, no need to throw an error :)
-    
     Location at = new Location(world, source.x + 0.5, source.y, source.z + 0.5);
     final LivingEntity actual = (LivingEntity)at.getWorld().spawnEntity(at, source.type);
     
@@ -250,6 +249,9 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       Zombie z = (Zombie)actual;
       if (z.isBaby()) z.setBaby(false);
     }
+    
+    actual.getEquipment().clear();
+    source.equip(actual);
     
     // mostly for spider jockeys
     if (actual.getPassengers().size() > 0) {
@@ -267,7 +269,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     }
     actual.setInvulnerable(true);
     actual.setAI(false);
-    placeholderMobs.put(actual, objFor);
+    placeholderMobs.put(actual, source);
     HeistMC.getInstance().getEntityTracker().track(actual, new EntityListener() {
 
       @Override
@@ -284,45 +286,47 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     });
   }
   
-  public void removePlaceholderMobsFor(KillObjective k) {
-    if (!placeholders) return;
-    
-    ArrayList<LivingEntity> queued = new ArrayList<LivingEntity>();
-    
-    for (LivingEntity ent : placeholderMobs.keySet()) {
-      if (placeholderMobs.get(ent).equals(k)) {
-        System.out.println("REMOVING " + ent);
-        ent.remove();
-        queued.add(ent);
-      }
-    }
-    for (LivingEntity ent : queued) {
-      placeholderMobs.remove(ent);
-    }
-  }
-  
-  private boolean placeholders = true;
-  public void showPlaceholderMobs() {
-    if (placeholderMobs.size() > 0) {
-      throw new IllegalStateException("Already showing placeholder mobs!");
-    }
-    placeholders = true;
-    for (MissionObjective obj : mTracker.getObjectives()) {
-      if (obj instanceof KillObjective) {
-        KillObjective kobj = (KillObjective)obj;
-        for (KillObjective.Entry ent : kobj.getEntities()) {
-          addPlaceholderMob(kobj, ent);
-        }
-      }
-    }
-  }
-  
-  public void hidePlaceholderMobs() {
+  private void removePlaceholderMobs() {
     for (LivingEntity ent : placeholderMobs.keySet()) {
       ent.remove();
     }
     placeholderMobs.clear();
-    placeholders = false;
+  }
+  
+  public void selectPlaceholderMobs(KillObjective obj) {
+    if (obj == null) {
+      removePlaceholderMobs();
+      selected = null;
+      return;
+    } else if (!obj.equals(selected)) {
+      removePlaceholderMobs();
+      selected = obj;
+      for (KillObjective.Entry entry : obj.getEntities()) {
+        addPlaceholderMob(obj, entry);
+      }
+    }
+  }
+  
+  private HashMap<UUID, Consumer<Inventory>> invCbk = new HashMap<>();
+  private HashMap<UUID, Inventory> showing = new HashMap<>();
+  public void showInventory(Player p, Inventory inv, Consumer<Inventory> cbk) {
+    if (hasPlayer(p)) {
+      p.openInventory(inv);
+      showing.put(p.getUniqueId(), inv);
+      invCbk.put(p.getUniqueId(), cbk);
+    }
+  }
+  
+  public boolean inventoryCallback(Player p) {
+    UUID puid = p.getUniqueId();
+    if (invCbk.containsKey(puid) && showing.containsKey(puid)) {
+      invCbk.get(puid).accept(showing.get(puid));
+      invCbk.remove(puid);
+      showing.remove(puid);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   public List<Player> getPlayers() {

@@ -13,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -31,6 +32,7 @@ import org.bukkit.inventory.ItemStack;
 
 import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.WorldManager;
+import anti.projects.heistmc.mission.KillObjective;
 import anti.projects.heistmc.ui.BuildMenu;
 import anti.projects.heistmc.ui.MenuView;
 
@@ -74,6 +76,13 @@ public class BuildEvents implements Listener {
     } else {
       return false;
     }
+  }
+  
+  private boolean isForBuild(EntityDamageByEntityEvent evt) {
+    System.out.println("CHECKING");
+    Entity target = evt.getEntity();
+    System.out.println("IS: " + world.isPlaceholderMob(target));
+    return world.isPlaceholderMob(target);
   }
   
   private boolean isForBuild(InventoryOpenEvent evt) {
@@ -205,13 +214,31 @@ public class BuildEvents implements Listener {
   }
   
   @EventHandler
+  public void entityDamageByEntity(EntityDamageByEntityEvent evt) {
+    if (isForBuild(evt)) {
+      Entity damager = evt.getDamager();
+      if (damager instanceof Player) {
+        Player p = (Player)damager;
+        ItemStack inMain = p.getInventory().getItemInMainHand();
+        if (Globals.isNamedItem(inMain, Material.DIAMOND_SWORD, Globals.STRING_REMOVE_MOB)) {
+          KillObjective selected = world.getSelectedPlaceholders();
+          if (selected != null) {
+            world.removeEntryForPlaceholder(evt.getEntity());
+            evt.setCancelled(true);
+          }
+        }
+      }
+    }
+  }
+  
+  @EventHandler
   public void playerDrop(PlayerDropItemEvent evt) {
     if (isForBuild(evt)) {
       ItemStack drop = evt.getItemDrop().getItemStack();
       if (Globals.isNamedItem(drop, Material.COMPASS, Globals.STRING_SET_SPAWN)
           || Globals.isNamedItem(drop, Material.BOOK, Globals.STRING_BUILD_MENU)
           || Globals.isNamedItem(drop, Material.NETHER_STAR, Globals.STRING_EXIT)
-          || Globals.isNamedItem(drop, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS)) {
+          || Globals.isNamedItem(drop, Material.ZOMBIE_HEAD, Globals.STRING_HIDE_PLACEHOLDERS)) {
         evt.setCancelled(true);
       }
     }
@@ -252,7 +279,12 @@ public class BuildEvents implements Listener {
   @EventHandler
   public void inventoryOpened(InventoryOpenEvent evt) {
     if (isForBuild(evt)) {
-      evt.getPlayer().setGameMode(GameMode.SURVIVAL);
+      // we already know evt.getPlayer() is a Player instance
+      Player p = (Player)evt.getPlayer();
+      boolean isFlying = p.isFlying();
+      p.setGameMode(GameMode.SURVIVAL);
+      p.setAllowFlight(true);
+      p.setFlying(isFlying);
     }
   }
   
@@ -263,6 +295,7 @@ public class BuildEvents implements Listener {
       he.setGameMode(GameMode.CREATIVE);
       if (he instanceof Player) {
         Player p = (Player)he;
+        if (world.inventoryCallback(p)) return;
         if (world.getMenu(p) != null) {
           if (world.getMenu(p).getInventoryView().getTopInventory().equals(evt.getInventory())) world.menuRevoked(p);
         }

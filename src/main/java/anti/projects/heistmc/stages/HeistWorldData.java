@@ -88,7 +88,9 @@ public class HeistWorldData {
         throw new IOException("Could not load HeistWorldData: Unable to instantiate objective of type '" + typeName + "'");
       } catch (IllegalAccessException e) {
         throw new IOException("Could not load HeistWorldData: Default constructor for objective of type '" + typeName + "' is not visible");
-      } catch (IllegalArgumentException e) {}
+      } catch (IllegalArgumentException e) {
+        throw e;
+      }
       catch (InvocationTargetException e) {
         throw new IOException("Could not load HeistWorldData: " + e.toString());
       } catch (ClassCastException cce) {

@@ -85,19 +85,24 @@ public class MenuPage implements MenuListener {
   
   public void onEmptySlotSelected() {}
   
-  public void itemSelected(int slot, Material type, String name, boolean isShift) {
+  public boolean itemSelected(int slot, Material type, String name, boolean isShift) {
     MenuEntry entry = entries.get(slot);
     if (entry != null) {
       MenuItemListener click = entry.onClick;
       if (click != null) {
+        boolean makeSound;
         if (!isShift) {
-          click.onSelected();
+          makeSound = click.whenSelected();
         } else {
-          click.onShiftSelected();
+          makeSound = click.whenShiftSelected();
         }
+        return makeSound;
+      } else {
+        return false;
       }
     } else {
       onEmptySlotSelected();
+      return false;
     }
   }
 }

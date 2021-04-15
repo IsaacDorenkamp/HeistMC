@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -20,9 +22,11 @@ import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import anti.projects.heistmc.EntityListener;
@@ -31,7 +35,11 @@ import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.stages.BuildWorld;
 import anti.projects.heistmc.stages.HeistWorld;
+import anti.projects.heistmc.ui.MenuItemListener;
 import anti.projects.heistmc.ui.MobTypeMenu;
+import anti.projects.heistmc.ui.OptionsMenu;
+import anti.projects.heistmc.ui.OptionsMenu.OptionsMenuEntry;
+import anti.projects.heistmc.ui.OptionsMenuOwner;
 import net.md_5.bungee.api.ChatColor;
 
 // TODO - Future
@@ -39,7 +47,7 @@ import net.md_5.bungee.api.ChatColor;
 // 2. Ability to remove entities without having to delete and recreate objectives
 // 3. EXCLUDE placeholder entities from saves. Perhaps make their visibility toggle-able?
 // 4. Rename individual entities
-public class KillObjective extends MissionObjective {
+public class KillObjective extends MissionObjective implements OptionsMenuOwner {
   
   public KillObjective() {
     super("", "");
@@ -60,6 +68,43 @@ public class KillObjective extends MissionObjective {
       this.name = name;
       this.type = type;
       this.equipment = new ItemStack[0]; // TODO
+    }
+    
+    public void equip(LivingEntity ent) {
+      for (ItemStack is : equipment) {
+        if (is == null) continue;
+        Material type = is.getType();
+        switch(type) {
+        case LEATHER_HELMET:
+        case IRON_HELMET:
+        case GOLDEN_HELMET:
+        case DIAMOND_HELMET:
+        case CHAINMAIL_HELMET:
+          ent.getEquipment().setHelmet(is);
+          break;
+        case LEATHER_CHESTPLATE:
+        case IRON_CHESTPLATE:
+        case GOLDEN_CHESTPLATE:
+        case DIAMOND_CHESTPLATE:
+        case CHAINMAIL_CHESTPLATE:
+          ent.getEquipment().setChestplate(is);
+          break;
+        case LEATHER_LEGGINGS:
+        case IRON_LEGGINGS:
+        case GOLDEN_LEGGINGS:
+        case DIAMOND_LEGGINGS:
+        case CHAINMAIL_LEGGINGS:
+          ent.getEquipment().setLeggings(is);
+        case LEATHER_BOOTS:
+        case IRON_BOOTS:
+        case GOLDEN_BOOTS:
+        case DIAMOND_BOOTS:
+        case CHAINMAIL_BOOTS:
+          ent.getEquipment().setBoots(is);
+        default:
+          ent.getEquipment().setItemInMainHand(is);
+        }
+      }
     }
   }
   
@@ -82,8 +127,7 @@ public class KillObjective extends MissionObjective {
         } else {
           le.setCustomNameVisible(false);
         }
-        EntityEquipment eq = le.getEquipment();
-        eq.setArmorContents(ent.equipment);
+        ent.equip(le);
       }
       spawned.add(e);
     }
@@ -125,6 +169,7 @@ public class KillObjective extends MissionObjective {
             ent.type = type;
             bw.addPlaceholderMob(KillObjective.this, ent);
           }
+          bw.selectPlaceholderMobs(KillObjective.this);
           p.closeInventory();
         }
       });
@@ -133,6 +178,9 @@ public class KillObjective extends MissionObjective {
     } else if (Globals.isNamedItem(is, Material.ZOMBIE_SPAWN_EGG, Globals.STRING_PLACE_ONE)) {
       Location spawnLoc = evt.getClickedBlock().getLocation().add(0, 1, 0);
       final Entry ent = new Entry(spawnLoc.getBlockX(), spawnLoc.getBlockY(), spawnLoc.getBlockZ(), null, toSpawn);
+      if (entities.size() > 0) {
+        ent.equipment = entities.get(0).equipment;
+      }
       entities.add(ent);
       
       // Note: This is justified since only LivingEntity types will be available for spawn.
@@ -142,18 +190,53 @@ public class KillObjective extends MissionObjective {
         p.getInventory().removeItem(_cfg);
       }
       
+      p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+      MessageUtil.send(p, String.format("Configured Kill Objective with %d %s%s", entities.size(), entities.get(0).type,
+          entities.size() > 1 ? "s" : ""));
+      
       cfgmeta();
       
       return true;
+    } else if (Globals.isNamedItem(is, Material.ANVIL, Globals.STRING_CONFIGURE_EQUIPMENT)) {
+      Inventory inv = Bukkit.createInventory(p, InventoryType.HOPPER);
+      // for now, all equipment is uniform (and may be forever)
+      if (entities.size() > 0) {
+        if (entities.get(0).equipment != null) {
+          inv.setContents(entities.get(0).equipment);
+        }
+      }
+      bw.showInventory(p, inv, new Consumer<Inventory>() {
+        @Override
+        public void accept(Inventory t) {
+          for (Entry e : entities) {
+            e.equipment = copyItemStacks(t.getContents());
+          }
+          bw.selectPlaceholderMobs(null);
+          bw.selectPlaceholderMobs(KillObjective.this);
+        }
+        
+      });
     }
     
     return false;
   }
   
+  private static ItemStack[] copyItemStacks(ItemStack[] src) {
+    ItemStack[] out = new ItemStack[src.length];
+    for (int i = 0; i < src.length; i++) {
+      out[i] = src[i] == null ? null : src[i].clone();
+    }
+    return out;
+  }
+  
+  public void remove(KillObjective.Entry ent) {
+    entities.remove(ent);
+  }
+  
   private void cfgmeta() {
     if (entities.size() == 0) return;
     this.name = "KILL";
-    this.description = "Find and kill the " + ChatColor.RED + "" + ChatColor.BOLD + MobTypeMenu.format(entities.get(0).type) + "s" ;
+    this.description = "Find and kill the " + ChatColor.RED + "" + ChatColor.BOLD + MobTypeMenu.format(entities.get(0).type) + (entities.size() > 1 ? "s" : "") ;
   }
   
   private ItemStack[] _cfg = null;
@@ -164,14 +247,15 @@ public class KillObjective extends MissionObjective {
     ItemStack spawn = Globals.getNamedItem(Material.ZOMBIE_SPAWN_EGG, Globals.STRING_PLACE_ONE);
     ItemStack cfg_eq = Globals.getNamedItem(Material.ANVIL, Globals.STRING_CONFIGURE_EQUIPMENT);
     ItemStack finish = Globals.getNamedItem(Material.WRITTEN_BOOK, Globals.STRING_FINISH);
-    HashMap<Integer, ItemStack> failed = p.getInventory().addItem(selectType, spawn, cfg_eq, finish);
-    if (failed.size() > 0) {
-      MessageUtil.send(p, ChatColor.BOLD + "" + ChatColor.RED + "Please free up some space in your inventory.");
-      p.getInventory().removeItem(selectType, spawn, cfg_eq, finish);
-    } else {
-      _cfg = new ItemStack[] { selectType, spawn, cfg_eq, finish };
-    }
-    return failed.size() == 0;
+    ItemStack remove = Globals.getNamedItem(Material.DIAMOND_SWORD, Globals.STRING_REMOVE_MOB);
+    _cfg = new ItemStack[] { selectType, spawn, cfg_eq, finish, remove };
+    Inventory inv = p.getInventory();
+    inv.setItem(0, selectType);
+    inv.setItem(1, spawn);
+    inv.setItem(2, cfg_eq);
+    inv.setItem(3, finish);
+    inv.setItem(4, remove);
+    return true;
   }
 
   @Override
@@ -191,15 +275,29 @@ public class KillObjective extends MissionObjective {
     // 6.   number of equipment items (writeInt)
     // 7.   Material enum values (as many as written in step 6)
     out.writeInt(entities.size());
+    out.writeUTF("MATERIAL"); // will change to "ITEM" once we write items instead of just material types
     for (Entry ent : entities) {
       out.writeUTF(ent.type.toString());
       out.writeUTF(ent.name != null ? ent.name : "");
       out.writeInt(ent.x);
       out.writeInt(ent.y);
       out.writeInt(ent.z);
-      out.writeInt(ent.equipment.length);
-      for (ItemStack is : ent.equipment) {
-        out.writeUTF(is.getType().toString());
+      
+      // TODO XXX - write serialized ItemStack (as in InventoryPersist), not just the material!
+      if (ent.equipment != null) {
+        int items = 0;
+        ArrayList<Material> materials = new ArrayList<>();
+        for (ItemStack is : ent.equipment) {
+          if (is == null) continue;
+          items++;
+          materials.add(is.getType());
+        }
+        out.writeInt(items);
+        for (Material m : materials) {
+          out.writeUTF(m.toString());
+        }
+      } else {
+        out.writeInt(0);
       }
     }
   }
@@ -207,6 +305,7 @@ public class KillObjective extends MissionObjective {
   @Override
   public void load(DataInputStream in) throws IOException {
     int amount = in.readInt();
+    in.readUTF(); // Right now, the "item format type" is ignored, it will always be material for now
     for (int i = 0; i < amount; i++) {
       EntityType type = EntityType.valueOf(in.readUTF());
       String name = in.readUTF();
@@ -220,10 +319,28 @@ public class KillObjective extends MissionObjective {
         is[j] = new ItemStack(Material.valueOf(in.readUTF()), 1);
       }
       
-      entities.add(new Entry(x, y, z, name, type));
+      Entry ent = new Entry(x, y, z, name, type);
+      ent.equipment = is;
+      
+      entities.add(ent);
     }
     
     cfgmeta();
+  }
+
+  @Override
+  public OptionsMenu getOptionsMenu(final Player playerFor) {
+    OptionsMenu menu = new OptionsMenu();
+    menu.addEntry(Material.LEVER, "Show mobs for this objective", new MenuItemListener() {
+      @Override
+      public void onSelected() {
+        BuildWorld bw = BuildWorld.getInstanceFor(HeistMC.getInstance(), playerFor);
+        if (bw != null) {
+          bw.selectPlaceholderMobs(KillObjective.this);
+        }
+      }
+    });
+    return menu;
   }
 
 }

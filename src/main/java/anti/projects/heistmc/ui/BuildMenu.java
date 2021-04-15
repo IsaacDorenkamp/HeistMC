@@ -40,9 +40,9 @@ public class BuildMenu extends MultiViewMenu {
         pushView(new MissionObjectiveMenu(world.getHeistWorldData().getObjectives(), BuildMenu.this, world.getMissionObjectiveTracker()));
       }
     });
-    base.addItem(15, Material.ZOMBIE_HEAD, Globals.STRING_TOGGLE_PLACEHOLDERS, new MenuItemListener() {
+    base.addItem(15, Material.ZOMBIE_HEAD, Globals.STRING_HIDE_PLACEHOLDERS, new MenuItemListener() {
       public void onSelected() {
-        world.togglePlaceholderMobs();
+        world.selectPlaceholderMobs(null);
         viewer.closeInventory();
       }
     });

@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Random;
+import java.util.function.BiFunction;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,6 +12,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -20,6 +22,8 @@ import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.stages.HeistWorld;
+import net.wesjd.anvilgui.AnvilGUI;
+import net.wesjd.anvilgui.AnvilGUI.Response;
 
 public class LocationObjective extends MissionObjective {
   private int x;
@@ -85,6 +89,9 @@ public class LocationObjective extends MissionObjective {
     }
     return inArea;
   }
+  
+  private ItemStack compass;
+  private ItemStack nametag;
 
   @Override
   public boolean tryConfigAction(PlayerInteractEvent evt) {
@@ -95,9 +102,24 @@ public class LocationObjective extends MissionObjective {
       this.x = (int)loc.getX();
       this.y = (int)loc.getY();
       this.z = (int)loc.getZ();
-      p.getInventory().remove(holding);
+      p.getInventory().remove(compass);
+      p.getInventory().remove(nametag);
       cfgmeta();
+      p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
       return true;
+    } else if (Globals.isNamedItem(holding, Material.NAME_TAG, Globals.STRING_SET_LOCATION_NAME)) {
+      AnvilGUI.Builder builder = new AnvilGUI.Builder();
+      builder.plugin(HeistMC.getInstance());
+      builder.itemLeft(Globals.getNamedItem(Material.NAME_TAG, "rename...")).onComplete(new BiFunction<Player, String, AnvilGUI.Response>() {
+        @Override
+        public Response apply(Player t, String u) {
+          LocationObjective.this.description = "Go to " + u;
+          MessageUtil.send(t, "Setting location name to " + u);
+          return AnvilGUI.Response.close();
+        }
+      });
+      builder.open(evt.getPlayer());
+      return false;
     } else {
       return false;
     }
@@ -105,16 +127,12 @@ public class LocationObjective extends MissionObjective {
 
   @Override
   public boolean onStartConfig(Player p) {
-    ItemStack compass = Globals.getNamedItem(Material.COMPASS, Globals.STRING_DESTINATION);
-    boolean success = p.getInventory().addItem(compass).size() == 0;
-    if (success) {
-      int index = p.getInventory().first(compass);
-      if (index >= 0 && index <= 8) p.getInventory().setHeldItemSlot(index);
-      MessageUtil.send(p, "Right click while holding the 'Set Destination' stick to set the objective's destination.");
-    } else {
-      MessageUtil.send(p, ChatColor.RED + "Your inventory is full, so could not start configuring the objective. Please free up an inventory slot.");
-    }
-    return success;
+    compass = Globals.getNamedItem(Material.COMPASS, Globals.STRING_DESTINATION);
+    nametag = Globals.getNamedItem(Material.NAME_TAG, Globals.STRING_SET_LOCATION_NAME);
+    p.getInventory().setItem(0, compass);
+    p.getInventory().setItem(1, nametag);
+    MessageUtil.send(p, "Right click while holding the 'Set Destination' compass to set the objective's destination.");
+    return true;
   }
   
   @Override
@@ -129,7 +147,9 @@ public class LocationObjective extends MissionObjective {
   
   private void cfgmeta() {
     this.name = "GO";
-    this.description = String.format("Go to the coordinates (%d, %d, %d)", x, y, z);
+    if (this.description.isEmpty()) {
+      this.description = String.format("Go to (%d, %d, %d)", x, y, z);
+    }
   }
   
   @Override
@@ -139,6 +159,7 @@ public class LocationObjective extends MissionObjective {
     dos.writeInt(y);
     dos.writeInt(z);
     dos.writeInt(radius);
+    dos.writeUTF(this.description);
   }
   
   @Override
@@ -147,6 +168,7 @@ public class LocationObjective extends MissionObjective {
     int _y = dis.readInt();
     int _z = dis.readInt();
     int _r = dis.readInt();
+    String desc = dis.readUTF();
     
     this.x = _x;
     this.y = _y;
@@ -155,6 +177,6 @@ public class LocationObjective extends MissionObjective {
     
     cfgmeta();
     
-    this.description = String.format("Go to (%d, %d, %d)", x, y, z);
+    this.description = String.format(desc, x, y, z);
   }
 }

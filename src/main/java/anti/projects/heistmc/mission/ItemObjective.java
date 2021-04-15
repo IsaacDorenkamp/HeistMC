@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
@@ -92,6 +93,9 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
         if (nametag != null) inv.remove(nametag);
         if (finish != null) inv.remove(finish);
         
+        evt.getPlayer().playSound(evt.getPlayer().getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        MessageUtil.send(evt.getPlayer(), "Configured item objective for item type " + ChatColor.YELLOW +
+            Globals.getMaterialName(type) + ChatColor.RESET + " with name " + ChatColor.BOLD + displayName);
         cfgmeta();
         
         return true;
@@ -105,19 +109,18 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
   
   private void cfgmeta() {
     this.name = "OBTAIN";
-    this.description = "Find and pick up an item called " + ChatColor.BOLD + displayName;
+    this.description = "Find and pick up a " + Globals.getMaterialName(type) + " called " + ChatColor.BOLD + displayName;
   }
 
   @Override
   public boolean onStartConfig(Player p) {
     nametag = Globals.getNamedItem(Material.NAME_TAG, Globals.STRING_NAME_ITEM);
     finish = Globals.getNamedItem(Material.WRITTEN_BOOK, Globals.STRING_FINISH);
-    HashMap<Integer, ItemStack> stacks = p.getInventory().addItem(nametag, finish);
-    if (stacks.size() > 0) {
-      MessageUtil.send(p, ChatColor.BOLD + "" + ChatColor.RED + "Please free up some space in your inventory.");
-      p.getInventory().removeItem(nametag, finish);
-    }
-    return stacks.size() == 0;
+    Inventory inv = p.getInventory();
+    inv.setItem(0, nametag);
+    inv.setItem(1, finish);
+    MessageUtil.send(p, "TIP: Use the nametag to rename the item and right click with an item in hand to set the item type.");
+    return true;
   }
 
   @Override

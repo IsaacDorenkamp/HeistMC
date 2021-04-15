@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import org.bukkit.Material;
 
 import anti.projects.heistmc.Globals;
+import anti.projects.heistmc.mission.KillObjective;
 import anti.projects.heistmc.mission.MissionObjective;
 import anti.projects.heistmc.stages.ObjectiveSetTracker;
 
@@ -19,11 +20,12 @@ public class MissionObjectiveListMenu extends MenuPage {
   private int toUse = -1;
   
   private Consumer<MissionObjective> onDelete = null;
+  private Consumer<KillObjective> onSelectKill = null;
   
   private ObjectiveSetTracker tracker;
   private MissionObjective selected = null;
   
-  private MenuItemListener unuse = new MenuItemListener() { public void onSelected() { use(-1); } };
+  private MenuItemListener unuse = new MenuItemListener() { public boolean whenSelected() { use(-1); return false; } };
   
   public MissionObjectiveListMenu(MultiViewMenu parent, List<MissionObjective> ref, ObjectiveSetTracker tracker) {
     this.parent = parent;
@@ -36,9 +38,13 @@ public class MissionObjectiveListMenu extends MenuPage {
     this.onDelete = onDelete;
   }
   
+  public void setKillSelectCallback(Consumer<KillObjective> onSelectKill) {
+    this.onSelectKill = onSelectKill;
+  }
+  
   @Override
   public void onEmptySlotSelected() {
-    unuse.onSelected();
+    unuse.whenSelected();
   }
   
   private void construct() {
@@ -62,6 +68,10 @@ public class MissionObjectiveListMenu extends MenuPage {
       public void onSelected() {
         if (toUse != -1) {
           final int modify = toUse;
+          MissionObjective obj = ref.get(toUse);
+          if (obj instanceof KillObjective && onSelectKill != null) {
+            onSelectKill.accept((KillObjective)obj);
+          }
           tracker.startConfiguring(parent.getViewer(), ref.get(toUse), new Consumer<MissionObjective>() {
             public void accept(MissionObjective obj) {
               ref.set(modify, obj);
@@ -148,15 +158,15 @@ public class MissionObjectiveListMenu extends MenuPage {
     ref.set(first, ref.get(second));
     ref.set(second, temp);
     setPage(page); // reload the page
-    render();
+    use(second);
+//    render();
   }
   
   private static final int OPTIONS_MENU_START_INDEX = 29;
   private void setOptionsMenu(OptionsMenu menu) {
-    // 30 is first slot
     if (menu == null || (menu != null && menu.size() == 0)) {
       for (int i = OPTIONS_MENU_START_INDEX; i < OPTIONS_MENU_START_INDEX + 5; i++) {
-        addItem(i, Material.BLACK_STAINED_GLASS_PANE, " ", null);
+        addItem(i, Material.BLACK_STAINED_GLASS_PANE, " ", unuse);
       }
     } else {
       int items = Math.min(menu.size(), 5);
@@ -192,7 +202,7 @@ public class MissionObjectiveListMenu extends MenuPage {
     @Override
     public void onShiftSelected() {
       if (toUse != -1) {
-        swap(idx, toUse);
+        swap(toUse, idx);
       }
     }
   }

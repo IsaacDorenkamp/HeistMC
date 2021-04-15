@@ -209,6 +209,11 @@ public class HeistMC extends JavaPlugin {
         if (args.length == 1) p = server.getPlayer(args[0]);
       }
       
+      if (!tracker.getState(p).equals(PlayerState.ONLINE)) {
+        MessageUtil.send(sender, "Please finish your current activity before attempting to join a lobby.");
+        return true;
+      }
+      
       if (p == null) {
         MessageUtil.send(sender, "Cannot identify player.");
         return true;
