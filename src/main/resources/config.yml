@@ -1,0 +1,12 @@
+commands:
+  dbg: heistmc.developer
+  build: heistmc.builder
+  export:  heistmc.builder
+  export-lobby: heistmc.builder
+  inv-reload: heistmc.developer
+  inv-push: heistmc.developer
+  inv-pop: heistmc.developer
+  set-developer: heistmc.admin
+  revoke-developer: heistmc.admin
+  set-builder: heistmc.admin
+  revoke-builder: heistmc.admin

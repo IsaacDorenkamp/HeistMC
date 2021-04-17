@@ -208,6 +208,10 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     return world;
   }
   
+  public HeistWorldData getData() {
+    return data;
+  }
+  
   public boolean isTransferring() {
     return transferring;
   }

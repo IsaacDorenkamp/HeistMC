@@ -1,8 +1,17 @@
 package anti.projects.heistmc.stages;
 
+import java.util.Iterator;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.TNT;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +22,7 @@ import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerEvent;
@@ -25,6 +35,7 @@ import org.bukkit.inventory.InventoryHolder;
 import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.WorldManager;
+import anti.projects.heistmc.api.BreakableBlock;
 
 public class HeistEvents implements Listener {
   private HeistWorld world;
@@ -61,16 +72,41 @@ public class HeistEvents implements Listener {
   }
   
   @EventHandler
-  public void blockBreak(BlockBreakEvent evt) {
+  public void entityExplode(EntityExplodeEvent evt) {
     if (isForHeist(evt)) {
       evt.setCancelled(true);
+      world.getWorld().playSound(evt.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+      world.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, evt.getLocation(), 5, null);
+      HeistWorldData data = world.getData();
+      Iterator<Block> it = evt.blockList().iterator();
+      while (it.hasNext()) {
+        Block b = it.next();
+        Location loc = b.getLocation();
+        if (data.getBreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()) != null) {
+          b.setType(Material.AIR);
+        }
+      }
+    }
+  }
+  
+  @EventHandler
+  public void blockBreak(BlockBreakEvent evt) {
+    if (isForHeist(evt)) {
+      Location loc = evt.getBlock().getLocation();
+      BreakableBlock bb = world.getData().getBreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+      if (bb == null) evt.setCancelled(true);
     }
   }
   
   @EventHandler
   public void blockPlace(BlockPlaceEvent evt) {
     if (isForHeist(evt)) {
-      evt.setCancelled(true);
+      if (evt.getBlock().getType().equals(Material.TNT)) {
+        evt.getBlock().setType(Material.AIR);
+        world.getWorld().spawnEntity(evt.getBlock().getLocation(), EntityType.PRIMED_TNT);
+      } else {
+        evt.setCancelled(true);
+      }
     }
   }
   

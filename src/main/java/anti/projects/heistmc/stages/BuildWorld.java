@@ -42,6 +42,7 @@ import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.MapManager;
 import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.WorldManager;
+import anti.projects.heistmc.api.BreakableBlock;
 import anti.projects.heistmc.api.ChatRoom;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
@@ -146,9 +147,15 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
         e.remove();
       }
     }
+    
+    boolean isShowing = showBreakable;
+    
+    hideBreakableBlocks();
 
     // save world, obviously
     world.save();
+    
+    if (isShowing) showBreakableBlocks();
 
     selectPlaceholderMobs(wasShowing);
 
@@ -227,6 +234,29 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     while (building.size() > 0) {
       removePlayer(building.get(0));
     }
+  }
+  
+  private boolean showBreakable = false;
+  public void showBreakableBlocks() {
+    if (showBreakable) return;
+    
+    showBreakable = true;
+    for (BreakableBlock bb : data.getBreakableBlocks()) {
+      world.getBlockAt(bb.getX(), bb.getY(), bb.getZ()).setType(Material.WHITE_WOOL);
+    }
+  }
+  
+  public void hideBreakableBlocks() {
+    if (!showBreakable) return;
+    
+    showBreakable = false;
+    for (BreakableBlock bb : data.getBreakableBlocks()) {
+      world.getBlockAt(bb.getX(), bb.getY(), bb.getZ()).setType(bb.getType());
+    }
+  }
+  
+  public boolean isShowingBreakable() {
+    return showBreakable;
   }
 
   public KillObjective getSelectedPlaceholders() {
@@ -346,7 +376,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   }
 
   public static BuildWorld getActiveInstance(Player p) {
-    if (!p.hasPermission(Globals.PERMISSION_BUILD)) {
+    if (!HeistMC.getPermissions().hasPermission(p, Globals.PERMISSION_BUILD)) {
       return null;
     }
     
@@ -367,7 +397,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   }
 
   public static BuildWorld getInstanceFor(HeistMC m, Player p, int slot) {
-    if (!p.hasPermission(Globals.PERMISSION_BUILD)) {
+    if (!HeistMC.getPermissions().hasPermission(p, Globals.PERMISSION_BUILD)) {
       return null;
     }
 
@@ -388,6 +418,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
 
     BuildWorld w = new BuildWorld(m.getStateTracker(), m.getWorldManager(), m.getMapManager(), m.getInventoryPersist(),
         key);
+    w.showBreakableBlocks();
     w.getWorld().setSpawnFlags(false, false);
     w.initialize(m);
     INSTANCES.put(key, w);

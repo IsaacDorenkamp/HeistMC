@@ -31,7 +31,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import anti.projects.heistmc.Globals;
+import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.WorldManager;
+import anti.projects.heistmc.api.BreakableBlock;
 import anti.projects.heistmc.mission.KillObjective;
 import anti.projects.heistmc.ui.BuildMenu;
 import anti.projects.heistmc.ui.MenuView;
@@ -112,7 +114,7 @@ public class BuildEvents implements Listener {
   @EventHandler
   public void blockPlace(BlockPlaceEvent evt) {
     if (isForBuild(evt)) {
-      if(!evt.getPlayer().hasPermission(Globals.PERMISSION_BUILD)) {
+      if(!HeistMC.getPermissions().hasPermission(evt.getPlayer(), Globals.PERMISSION_BUILD)) {
         evt.setCancelled(true);
       }
     }
@@ -121,8 +123,27 @@ public class BuildEvents implements Listener {
   @EventHandler
   public void blockBreak(BlockBreakEvent evt) {
     if (isForBuild(evt)) {
-      if (!evt.getPlayer().hasPermission(Globals.PERMISSION_BUILD)) {
+      Location loc = evt.getBlock().getLocation();
+      Player p = evt.getPlayer();
+      HeistWorldData data = world.getHeistWorldData();
+      if (!HeistMC.getPermissions().hasPermission(p, Globals.PERMISSION_BUILD)) {
         evt.setCancelled(true);
+      } else if (Globals.isNamedItem(p.getInventory().getItemInMainHand(), Material.WOODEN_AXE, Globals.STRING_TOGGLE_BREAKABLE)) {
+        BreakableBlock instance = data.getBreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (instance != null) {
+          Material type = instance.getType();
+          loc.getBlock().setType(type);
+          data.removeBreakableAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        } else {
+          Material type = evt.getBlock().getType();
+          data.addBreakableBlock(new BreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), type));
+          if (world.isShowingBreakable()) {
+            loc.getBlock().setType(Material.WHITE_WOOL);
+          }
+        }
+        evt.setCancelled(true);
+      } else {
+        data.removeBreakableAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()); // no-op if not breakable
       }
     }
   }
@@ -130,7 +151,7 @@ public class BuildEvents implements Listener {
   @EventHandler
   public void entitySpawn(PlayerUnleashEntityEvent evt) {
     if (isForBuild(evt)) {
-      if (!evt.getPlayer().hasPermission(Globals.PERMISSION_BUILD)) {
+      if (!HeistMC.getPermissions().hasPermission(evt.getPlayer(), Globals.PERMISSION_BUILD)) {
         evt.setCancelled(true);
       }
     }

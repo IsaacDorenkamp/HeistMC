@@ -2,20 +2,26 @@ package anti.projects.heistmc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 
+import anti.projects.heistmc.api.InternalPermissions;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.persist.InventoryPersist;
@@ -32,6 +38,10 @@ public class HeistMC extends JavaPlugin {
   
   public static HeistMC getInstance() {
     return INSTANCE;
+  }
+  
+  public static InternalPermissions getPermissions() {
+    return INSTANCE.permissions;
   }
   
   public static void runTask(final Runnable r) {
@@ -56,6 +66,8 @@ public class HeistMC extends JavaPlugin {
   private Server server;
   private WorldManager worldMgr;
   private MapManager mapMgr;
+  private FileConfiguration commands;
+  private InternalPermissions permissions;
   
   private GlobalEvents evts;
   private PlayerStateTracker tracker;
@@ -91,6 +103,33 @@ public class HeistMC extends JavaPlugin {
       mapMgr = new MapManager(maps);
     } catch (IOException ioe) {
       throw new UnsupportedOperationException("Could not initialize map manager; aborting.");
+    }
+    
+    File configfile = new File(data, "config.yml");
+    if (!configfile.exists()) {
+      try {
+        InputStream is = getResource("config.yml");
+        FileOutputStream fos = new FileOutputStream(configfile);
+        int _byte;
+        while ((_byte = is.read()) != -1) {
+          fos.write(_byte);
+        }
+        fos.close();
+        is.close();
+      } catch (IOException ioe) {
+        log.severe("Could not copy config.yml to data folder.");
+      }
+    }
+    
+    commands = getConfig();
+    
+    File permFile =  new File(data, Globals.PERMISSIONS_FILE);
+    try {
+      if (permFile.exists()) permissions = InternalPermissions.load(permFile);
+      else permissions = new InternalPermissions();
+    } catch (IOException ioe) {
+      log.severe("Could not read permissions file. Using blank permissions model.");
+      permissions = new InternalPermissions();
     }
     
     tracker = new PlayerStateTracker();
@@ -147,6 +186,12 @@ public class HeistMC extends JavaPlugin {
     } catch(ClassNotFoundException cnfe) {
       log.warning("Build worlds not initialized; ignoring");
     }
+    
+    try {
+      permissions.save(new File(getDataFolder(), Globals.PERMISSIONS_FILE));
+    } catch (IOException ioe) {
+      log.severe("FAILED TO SAVE PERMISSIONS FILE - permissions will be reset on next startup!");
+    }
 
     // unload and delete non-persistent worlds
     worldMgr.purge();
@@ -190,6 +235,19 @@ public class HeistMC extends JavaPlugin {
   @Override
   public boolean onCommand(CommandSender sender, Command cmdObj, String cmdLabel, String[] args) {
     String cmd = cmdObj.getName();
+    
+    String permission = commands.getString(String.format("commands.%s", cmd), null);
+    System.out.println("PATH: " + commands.getConfigurationSection(String.format("commands", cmd)).getValues(true));
+    System.out.println(commands.getConfigurationSection("commands").getValues(true));
+    System.out.println("PERMISSION: " + permission);
+    if (permission != null && sender instanceof Player) {
+      Player pl = (Player)sender;
+      if (!permissions.hasPermission(pl, permission)) {
+        MessageUtil.send(pl, ChatColor.RED + "You don't have permission to do that.");
+        return true;
+      }
+    }
+    
     if (cmd.equals("dbg")) {
       if (args.length != 1 || !(sender instanceof Player)) {
         MessageUtil.send(sender, "Invalid debug command.");
@@ -300,6 +358,39 @@ public class HeistMC extends JavaPlugin {
           invPersist.popInventory((Player)sender);
         } else {
           MessageUtil.send(sender, "There is no inventory entry for you.");
+        }
+      }
+      return true;
+    } else if (cmd.startsWith("set-")) {
+      if (args.length != 1) {
+        return false;
+      }
+      @SuppressWarnings("deprecation")
+      OfflinePlayer op = server.getOfflinePlayer(args[0]);
+      String perm = "heistmc." + cmd.split("-")[1];
+      if (permissions.hasPermission(op, perm)) {
+        MessageUtil.send(sender, "Player already has that permission!");
+      } else {
+        permissions.grantPermission(op, perm);
+        MessageUtil.send(sender, "Granted permission " + ChatColor.YELLOW + cmd.split("-")[1] + ChatColor.RESET + " to player "
+            + op.getName());
+      }
+      return true;
+    } else if (cmd.startsWith("revoke-")) {
+      if (args.length != 1) {
+        return false;
+      }
+      @SuppressWarnings("deprecation")
+      OfflinePlayer op = server.getOfflinePlayer(args[0]);
+      String perm = "heistmc." + cmd.split("-")[1];
+      if (!permissions.hasPermission(op, perm)) {
+        MessageUtil.send(sender, "Player doesn't have that permission!");
+      } else {
+        boolean revoked = permissions.revokePermission(op, perm);
+        if (revoked) MessageUtil.send(sender, "Revoked permission " + ChatColor.YELLOW + cmd.split("-")[1] + ChatColor.RESET +
+            " from player " + op.getName());
+        else {
+          MessageUtil.send(sender, ChatColor.RED + "Cannot revoke that permission! Is that player an op?");
         }
       }
       return true;

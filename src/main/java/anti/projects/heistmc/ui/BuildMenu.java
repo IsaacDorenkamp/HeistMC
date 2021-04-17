@@ -46,6 +46,12 @@ public class BuildMenu extends MultiViewMenu {
         viewer.closeInventory();
       }
     });
+    
+    base.addItem(31, Material.COBBLESTONE, "Breakable Blocks", new MenuItemListener() {
+      public void onSelected() {
+        pushView(new BreakableBlockMenu(viewer, world));
+      }
+    });
   }
 
 }

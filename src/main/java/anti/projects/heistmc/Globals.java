@@ -14,7 +14,7 @@ public class Globals {
   
   public static final String PLUGIN_NAME = "HeistMC";
   
-  public static final String PERMISSION_BUILD = "heistmc.create";
+  public static final String PERMISSION_BUILD = "heistmc.builder";
   
   public static final String STRING_EXIT = "Exit";
   public static final String STRING_START_HEIST = "Start Heist";
@@ -39,6 +39,8 @@ public class Globals {
   public static final String STRING_NAME_ITEM = "Name Item";
   public static final String STRING_FINISH = "Finish Configuring";
   
+  public static final String STRING_TOGGLE_BREAKABLE = "Toggle Block Breakability";
+  
   public static final String STRING_REDSTONE = "Redstone";
   public static final String STRING_CREATE_BLOCK = "Spawn Block Under You";
   
@@ -57,6 +59,7 @@ public class Globals {
   public static final String MAP_MASTER_FILE = "maps.txt";
   public static final String INVENTORY_PERSIST_FILE = "inventory_persist.dat";
   public static final String PLAYER_STATE_PERSIST_FILE = "player_state_persist.dat";
+  public static final String PERMISSIONS_FILE = "permissions.dat";
   
   public static ItemStack getNamedItem(Material type, String name) {
     ItemStack stack = new ItemStack(type, 1);

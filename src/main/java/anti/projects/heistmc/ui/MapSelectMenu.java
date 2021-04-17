@@ -1,5 +1,6 @@
 package anti.projects.heistmc.ui;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -25,7 +26,14 @@ public class MapSelectMenu extends SingleViewMenu {
   
   private void construct() {
     MenuPage pg = getMenu();
-    List<Object> mapnames = maps.getMapNames().stream().sorted().filter(new Predicate<String>() {
+    List<Object> mapnames = maps.getMapNames().stream().sorted(new Comparator<String>() {
+
+      @Override
+      public int compare(String o1, String o2) {
+        return o1.compareToIgnoreCase(o2);
+      }
+      
+    }).filter(new Predicate<String>() {
 
       public boolean test(String t) {
         return !t.equals(Globals.ID_LOBBY);

@@ -11,16 +11,21 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import anti.projects.heistmc.api.BreakableBlock;
+import anti.projects.heistmc.api.DataSectionType;
 import anti.projects.heistmc.mission.MissionObjective;
 
 public class HeistWorldData {
   private List<MissionObjective> objectives;
+  private List<BreakableBlock> breakableBlocks;
   public HeistWorldData() {
     objectives = new ArrayList<MissionObjective>();
+    breakableBlocks = new ArrayList<BreakableBlock>();
   }
   
   public void addObjective(MissionObjective obj) {
@@ -29,6 +34,35 @@ public class HeistWorldData {
   
   public List<MissionObjective> getObjectives() {
     return objectives;
+  }
+  
+  public void addBreakableBlock(BreakableBlock bb) {
+    breakableBlocks.add(bb);
+  }
+  
+  public List<BreakableBlock> getBreakableBlocks() {
+    return new ArrayList<>(breakableBlocks);
+  }
+  
+  public BreakableBlock getBreakableBlock(int x, int y, int z) {
+    for (BreakableBlock bb : breakableBlocks) {
+      if (bb.getX() == x && bb.getY() == y && bb.getZ() == z) {
+        return bb;
+      }
+    }
+    return null;
+  }
+  
+  public boolean removeBreakableAt(int x, int y, int z) {
+    Iterator<BreakableBlock> it = breakableBlocks.iterator();
+    while (it.hasNext()) {
+      BreakableBlock bb = it.next();
+      if (bb.getX() == x && bb.getY() == y && bb.getZ() == z) {
+        it.remove();
+        return true;
+      }
+    }
+    return false;
   }
   
   // file format:
@@ -40,6 +74,13 @@ public class HeistWorldData {
     
     for (MissionObjective obj : objectives) {
       obj.saveData(bufInterface);
+    }
+    
+    // save sections!
+    for (DataSectionType type : DataSectionType.values()) {
+      bufInterface.writeUTF("SECTION");
+      bufInterface.writeUTF(type.toString());
+      type.save(bufInterface, this);
     }
     
     byte[] data = buffer.toByteArray();
@@ -72,6 +113,19 @@ public class HeistWorldData {
     
     String typeName;
     while ((typeName = getNextUTF(objDataIn)) != null) {
+      if (typeName.equals("SECTION")) {
+        // data to follow is not a heist objective; rather a portion of data
+        // dedicated to some other data related to the map
+        String sectionType = getNextUTF(objDataIn);
+        try {
+          DataSectionType sectype = DataSectionType.valueOf(sectionType);
+          sectype.load(objDataIn, data);
+        } catch(IllegalArgumentException exc) {
+          // TODO - XXX log some error?
+          // unimportant for now
+        }
+        continue;
+      }
       try {
         Class<?> clzz = Class.forName(typeName);
         Constructor<?> con = clzz.getConstructor();

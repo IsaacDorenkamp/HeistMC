@@ -3,11 +3,15 @@ permissions:
         description: Grants all permissions available in HeistMC.
         children:
             heistmc.create: true
+
+    heistmc.admin:
+        description: Allows a user to perform basic administrative actions.
+        default: op
     
-    heistmc.create:
+    heistmc.builder:
         description: Allows a user to build a HeistMC map.
         default: op
 
     heistmc.developer:
         description: Developer privileges.
-        default: op
+        default: false

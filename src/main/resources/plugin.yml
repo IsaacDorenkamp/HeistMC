@@ -19,35 +19,39 @@ commands:
   build:
     description: "Create a HeistMC map."
     usage: "Usage: /build"
-    permission: heistmc.create
-    permission-message: You don't have creating privileges.
 
   export:
     description: "Export a HeistMC map."
     usage: "Usage: /export <map name...>"
-    permission: heistmc.create
-    permission-message: You don't have creating privileges.
 
   export-lobby:
     description: "Export a HeistMC map as the map to be used for waiting lobbies."
     usage: "Usage: /export-lobby"
-    permission: heistmc.create
-    permission-message: You don't have creating privileges.
 
   inv-reload:
     description: "Reload inventory persistence"
     usage: "Usage: /inv-reload"
-    permission: heistmc.developer
-    permission-message: You aren't a developer.
 
   inv-push:
     description: "Push an entry on the inventory persist stack."
     usage: "Usage: /inv-push"
-    permission: heistmc.developer
-    permission-message: You aren't a developer.
 
   inv-pop:
     description: "Pop an entry off the inventory persist stack."
     usage: "Usage: /inv-pop"
-    permission: heistmc.developer
-    permission-message: You aren't a developer.
+
+  set-developer:
+    description: "Give a user developer permissions"
+    usage: "Usage: /set-developer <username>"
+
+  revoke-developer:
+    description: "Revoke developer permissions from a user."
+    usage: "Usage: /revoke-developer <username>"
+
+  set-builder:
+    description: "Give a user builder permissions"
+    usage: "Usage: /set-builder <username>"
+
+  revoke-builder:
+    description: "Revoke builder permissions from a user."
+    usage: "Usage: /revoke-builder <username>"
