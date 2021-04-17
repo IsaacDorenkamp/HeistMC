@@ -51,12 +51,12 @@ import anti.projects.heistmc.persist.InventoryPersist;
 import anti.projects.heistmc.ui.MenuView;
 
 public class BuildWorld implements ChatRoom, CommandExecutor {
-  private static HashMap<UUID, BuildWorld> INSTANCES = new HashMap<UUID, BuildWorld>();
-  
+  private static HashMap<String, BuildWorld> INSTANCES = new HashMap<String, BuildWorld>();
+
   public static Collection<BuildWorld> getInstances() {
     return INSTANCES.values();
   }
-  
+
   public static BuildWorld getInstanceForWorld(World w) {
     for (BuildWorld instance : INSTANCES.values()) {
       if (instance.world.equals(w)) {
@@ -80,18 +80,19 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
 
   private BuildEvents evts;
   private HashMap<Player, MenuView> menus = new HashMap<Player, MenuView>();
-  
+
   private KillObjective selected = null;
   private HashMap<LivingEntity, KillObjective.Entry> placeholderMobs = new HashMap<>();
   private HashMap<Player, GameMode> onEnter = new HashMap<Player, GameMode>();
 
   private static Logger log = null;
 
-  private BuildWorld(PlayerStateTracker tracker, WorldManager mgr, MapManager maps, InventoryPersist persist, Player p) {
+  private BuildWorld(PlayerStateTracker tracker, WorldManager mgr, MapManager maps, InventoryPersist persist,
+      String key) {
     this.tracker = tracker;
     this.mgr = mgr;
     this.maps = maps;
-    world = mgr.getOrBlank(String.format("build_" + p.getUniqueId().toString()), true);
+    world = mgr.getOrBlank(String.format("build_" + key), true);
     persistence = persist;
     building = new ArrayList<Player>();
   }
@@ -138,17 +139,17 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     KillObjective wasShowing = selected;
     // get rid of placeholder mobs
     removePlaceholderMobs();
-    
+
     // get rid of any other living entities
     for (Entity e : world.getEntities()) {
       if (e instanceof LivingEntity && !(e instanceof Player)) {
         e.remove();
       }
     }
-    
+
     // save world, obviously
     world.save();
-    
+
     selectPlaceholderMobs(wasShowing);
 
     // save heist world data
@@ -194,9 +195,9 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
 
     persistence.pushInventory(p);
     onEnter.put(p, p.getGameMode());
-    
+
     p.setGameMode(GameMode.CREATIVE);
-    
+
     p.getInventory().clear();
     p.getInventory().setItem(7, Globals.getMenuBook());
     p.getInventory().setItem(8, Globals.getLeaveStar());
@@ -205,30 +206,33 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     p.teleport(world.getSpawnLocation());
     tracker.setState(p, PlayerState.BUILD);
   }
-  
+
   public void removePlayer(Player p) {
     building.remove(p);
+    if (mTracker.isConfiguring(p)) {
+      mTracker.cancel();
+    }
     GameMode gm = onEnter.get(p);
     p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);
     p.getInventory().clear();
     p.teleport(mgr.getMainWorld().getSpawnLocation());
     tracker.setState(p, PlayerState.ONLINE);
-    
+
     if (persistence.hasEntry(p)) {
       persistence.popInventory(p);
     }
   }
-  
+
   public void evacuate() {
     while (building.size() > 0) {
       removePlayer(building.get(0));
     }
   }
-  
+
   public KillObjective getSelectedPlaceholders() {
     return selected;
   }
-  
+
   public void removeEntryForPlaceholder(Entity ent) {
     if (selected != null) {
       selected.remove(placeholderMobs.get(ent));
@@ -236,30 +240,31 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     placeholderMobs.remove(ent);
     ent.remove();
   }
-  
+
   public boolean isPlaceholderMob(Entity ent) {
     return placeholderMobs.containsKey(ent);
   }
-  
+
   public void addPlaceholderMob(KillObjective objFor, KillObjective.Entry source) {
     Location at = new Location(world, source.x + 0.5, source.y, source.z + 0.5);
-    final LivingEntity actual = (LivingEntity)at.getWorld().spawnEntity(at, source.type);
-    
+    final LivingEntity actual = (LivingEntity) at.getWorld().spawnEntity(at, source.type);
+
     if (actual instanceof Zombie) {
-      Zombie z = (Zombie)actual;
-      if (z.isBaby()) z.setBaby(false);
+      Zombie z = (Zombie) actual;
+      if (z.isBaby())
+        z.setBaby(false);
     }
-    
+
     actual.getEquipment().clear();
     source.equip(actual);
-    
+
     // mostly for spider jockeys
     if (actual.getPassengers().size() > 0) {
       for (Entity e : actual.getPassengers()) {
         actual.removePassenger(e);
       }
     }
-    
+
     actual.setGravity(false);
     if (source.name != null) {
       actual.setCustomName(source.name);
@@ -273,26 +278,28 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     HeistMC.getInstance().getEntityTracker().track(actual, new EntityListener() {
 
       @Override
-      public void blockDamage(EntityDamageByBlockEvent evt) {}
+      public void blockDamage(EntityDamageByBlockEvent evt) {
+      }
 
       @Override
-      public void entityDamage(EntityDamageByEntityEvent evt) {}
+      public void entityDamage(EntityDamageByEntityEvent evt) {
+      }
 
       @Override
       public void death(EntityDeathEvent evt) {
         placeholderMobs.remove(actual);
       }
-      
+
     });
   }
-  
+
   private void removePlaceholderMobs() {
     for (LivingEntity ent : placeholderMobs.keySet()) {
       ent.remove();
     }
     placeholderMobs.clear();
   }
-  
+
   public void selectPlaceholderMobs(KillObjective obj) {
     if (obj == null) {
       removePlaceholderMobs();
@@ -306,9 +313,10 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       }
     }
   }
-  
+
   private HashMap<UUID, Consumer<Inventory>> invCbk = new HashMap<>();
   private HashMap<UUID, Inventory> showing = new HashMap<>();
+
   public void showInventory(Player p, Inventory inv, Consumer<Inventory> cbk) {
     if (hasPlayer(p)) {
       p.openInventory(inv);
@@ -316,7 +324,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       invCbk.put(p.getUniqueId(), cbk);
     }
   }
-  
+
   public boolean inventoryCallback(Player p) {
     UUID puid = p.getUniqueId();
     if (invCbk.containsKey(puid) && showing.containsKey(puid)) {
@@ -337,20 +345,28 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     return building.contains(p);
   }
 
-  public static boolean hasActiveInstance(Player p) {
+  public static BuildWorld getActiveInstance(Player p) {
     if (!p.hasPermission(Globals.PERMISSION_BUILD)) {
-      return false;
+      return null;
     }
-
-    BuildWorld instance = INSTANCES.get(p.getUniqueId());
-    if (instance == null) {
-      return false;
-    } else {
-      return instance.hasPlayer(p);
+    
+    String uid = p.getUniqueId().toString();
+    for (int i = 0; i < Globals.BUILD_SLOTS; i++) {
+      String key = i == 0 ? uid : String.format("%s_%d", uid, i);
+      BuildWorld instance = INSTANCES.get(key);
+      if (instance != null && instance.hasPlayer(p)) {
+        return instance;
+      }
     }
+    
+    return null;
+  }
+  
+  public static boolean hasActiveInstance(Player p) {
+    return getActiveInstance(p) != null;
   }
 
-  public static BuildWorld getInstanceFor(HeistMC m, Player p) {
+  public static BuildWorld getInstanceFor(HeistMC m, Player p, int slot) {
     if (!p.hasPermission(Globals.PERMISSION_BUILD)) {
       return null;
     }
@@ -362,14 +378,19 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     // unique player and return the already constructed
     // instance the second, third, fourth time et. al.
     UUID uid = p.getUniqueId();
-    if (INSTANCES.containsKey(uid)) {
-      return INSTANCES.get(uid);
+    String key = slot == 0 ? uid.toString() : String.format("%s_%d", uid.toString(), slot);
+    
+    if (INSTANCES.containsKey(key)) {
+      return INSTANCES.get(key);
     }
+    
+    MessageUtil.send(p, "Initializing build world, this may take a second...");
 
-    BuildWorld w = new BuildWorld(m.getStateTracker(), m.getWorldManager(), m.getMapManager(), m.getInventoryPersist(), p);
+    BuildWorld w = new BuildWorld(m.getStateTracker(), m.getWorldManager(), m.getMapManager(), m.getInventoryPersist(),
+        key);
     w.getWorld().setSpawnFlags(false, false);
     w.initialize(m);
-    INSTANCES.put(uid, w);
+    INSTANCES.put(key, w);
     return w;
   }
 
@@ -405,7 +426,6 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       return true;
     } else if (cmd.equals("export-lobby")) {
       try {
-        System.out.println("Spawn location: " + world.getSpawnLocation().toString());
         save();
         boolean result = maps.exportMap(Globals.ID_LOBBY, world.getWorldFolder(), true);
         if (!result) {

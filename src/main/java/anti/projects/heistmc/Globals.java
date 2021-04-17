@@ -9,7 +9,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public class Globals {
   public static final int MAX_LOBBIES = 1;
-  public static final int MAX_PLAYERS = 4;
+  public static final int MAX_PLAYERS = 2;
+  public static final int BUILD_SLOTS = 5;
   
   public static final String PLUGIN_NAME = "HeistMC";
   

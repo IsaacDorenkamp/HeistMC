@@ -85,7 +85,12 @@ public class LobbyEvents implements Listener {
       }
     } else {
       if (evt.getTo().getWorld().equals(lobbyFor.getWorld())) {
-        evt.setCancelled(true); // prevent player from teleporting into a lobby
+        if (lobbyFor.isAccepting()) {
+          lobbyFor.putPlayer(p, ChatColor.GREEN + "Player " + ChatColor.YELLOW + p.getDisplayName() + ChatColor.GREEN + " has joined.", false);
+        } else {
+          MessageUtil.send(p, ChatColor.RED + "Sorry, that player is in a full lobby!");
+          evt.setCancelled(true); // prevent player from teleporting into a lobby
+        }
       }
     }
   }

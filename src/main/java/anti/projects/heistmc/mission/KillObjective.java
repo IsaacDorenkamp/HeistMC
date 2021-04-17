@@ -95,14 +95,17 @@ public class KillObjective extends MissionObjective implements OptionsMenuOwner 
         case DIAMOND_LEGGINGS:
         case CHAINMAIL_LEGGINGS:
           ent.getEquipment().setLeggings(is);
+          break;
         case LEATHER_BOOTS:
         case IRON_BOOTS:
         case GOLDEN_BOOTS:
         case DIAMOND_BOOTS:
         case CHAINMAIL_BOOTS:
           ent.getEquipment().setBoots(is);
+          break;
         default:
           ent.getEquipment().setItemInMainHand(is);
+          break;
         }
       }
     }
@@ -334,7 +337,7 @@ public class KillObjective extends MissionObjective implements OptionsMenuOwner 
     menu.addEntry(Material.LEVER, "Show mobs for this objective", new MenuItemListener() {
       @Override
       public void onSelected() {
-        BuildWorld bw = BuildWorld.getInstanceFor(HeistMC.getInstance(), playerFor);
+        BuildWorld bw = BuildWorld.getActiveInstance(playerFor);
         if (bw != null) {
           bw.selectPlaceholderMobs(KillObjective.this);
         }

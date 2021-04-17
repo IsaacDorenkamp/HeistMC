@@ -74,19 +74,6 @@ public class HeistEvents implements Listener {
     }
   }
   
-//  @EventHandler
-//  public void playerInteract(PlayerInteractEvent evt) {
-//    if (isForHeist(evt)) {
-//      if (evt.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
-//        Material m = evt.getClickedBlock().getType();
-//        if (m.equals(Material.BEDROCK)) {
-//          // end heist
-//          world.finish(mgr.getMainWorld().getSpawnLocation());
-//        }
-//      }
-//    }
-//  }
-  
   private void checkObjective() {
     world.checkNextObjective();
   }

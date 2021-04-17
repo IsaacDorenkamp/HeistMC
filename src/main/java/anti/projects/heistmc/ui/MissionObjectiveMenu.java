@@ -24,16 +24,16 @@ public class MissionObjectiveMenu extends MenuPage {
   }
   
   private void construct() {
-    addItem(11, Material.WRITABLE_BOOK, Globals.STRING_MAKE_OBJECTIVE, new MenuItemListener() {
+    addItem(12, Material.WRITABLE_BOOK, Globals.STRING_MAKE_OBJECTIVE, new MenuItemListener() {
       public void onSelected() {
         parent.pushView(new MissionObjectiveTypeMenu(parent, target));
       }
     });
     
-    addItem(13, Material.WRITTEN_BOOK, Globals.STRING_VIEW_OBJECTIVES, new MenuItemListener( ) {
+    addItem(14, Material.WRITTEN_BOOK, Globals.STRING_VIEW_OBJECTIVES, new MenuItemListener( ) {
       public void onSelected() {
         // quick way to do this, not the best form but still reliable
-        final BuildWorld bw = BuildWorld.getInstanceFor(HeistMC.getInstance(), parent.getViewer());
+        final BuildWorld bw = BuildWorld.getActiveInstance(parent.getViewer());
         MissionObjectiveListMenu menu = new MissionObjectiveListMenu(parent, ref, target);
         menu.setDeleteCallback(new Consumer<MissionObjective>() {
           public void accept(MissionObjective obj) {

@@ -3,6 +3,7 @@ package anti.projects.heistmc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.stages.BuildWorld;
 import anti.projects.heistmc.stages.HeistWorld;
 import anti.projects.heistmc.stages.Lobby;
+import anti.projects.heistmc.ui.BuildWorldSelector;
 
 public class HeistMC extends JavaPlugin {
   public static Scoreboard BLANK;
@@ -62,6 +64,8 @@ public class HeistMC extends JavaPlugin {
   private InventoryPersist invPersist;
   private PlayerStatePersist psPersist;
   
+  private BuildWorldSelector selector = new BuildWorldSelector();
+  
   @Override
   public void onEnable() {
     HeistMC.INSTANCE = this;
@@ -94,6 +98,8 @@ public class HeistMC extends JavaPlugin {
     
     entities = new EntityTracker();
     server.getPluginManager().registerEvents(entities, this);
+    
+    server.getPluginManager().registerEvents(selector, this);
     
     log = server.getLogger();
     
@@ -248,18 +254,23 @@ public class HeistMC extends JavaPlugin {
       if (!(sender instanceof Player)) {
         return false;
       } else {
-        Player p = (Player)sender;
+        final Player p = (Player)sender;
         if (tracker.getState(p).equals(PlayerState.BUILD)) {
           MessageUtil.send(p, ChatColor.RED + "You're already building!");
           return true;
         }
-        BuildWorld bw = BuildWorld.getInstanceFor(this, p);
-        if (bw == null) {
-          MessageUtil.send(p, "You don't have permission to build HeistMC maps.");
-        } else {
-          bw.putPlayer(p);
-          MessageUtil.send(p, "Welcome to the HeistMC map builder!");
-        }
+        Consumer<Integer> onSlotSelect = new Consumer<Integer>() {
+          public void accept(Integer slot) {
+            BuildWorld bw = BuildWorld.getInstanceFor(HeistMC.this, p, slot);
+            if (bw == null) {
+              MessageUtil.send(p, "You don't have permission to build HeistMC maps.");
+            } else {
+              bw.putPlayer(p);
+              MessageUtil.send(p, "Welcome to the HeistMC map builder!");
+            }
+          }
+        };
+        selector.show(p, onSlotSelect);
         return true;
       }
     } else if (cmd.equals("inv-reload")) {
@@ -296,7 +307,7 @@ public class HeistMC extends JavaPlugin {
       Player p = (Player)sender;
       HeistWorld instanceForPlayer = HeistWorld.getInstanceForPlayer(p);
       if (BuildWorld.hasActiveInstance(p)) {
-        BuildWorld instance = BuildWorld.getInstanceFor(this, p);
+        BuildWorld instance = BuildWorld.getActiveInstance(p);
         return instance.onCommand(sender, cmdObj, cmdLabel, args);
       } else if (instanceForPlayer != null) {
         return instanceForPlayer.onCommand(p, cmdObj, cmdLabel, args);

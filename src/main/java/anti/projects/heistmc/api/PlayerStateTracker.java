@@ -24,7 +24,11 @@ public class PlayerStateTracker implements Listener {
   public PlayerState getState(Player p) {
     PlayerState state = states.get(p.getUniqueId());
     if (state == null) {
-      return PlayerState.OFFLINE;
+      if (p.isOnline()) {
+        return PlayerState.ONLINE;
+      } else {
+        return PlayerState.OFFLINE;
+      }
     } else return state;
   }
   

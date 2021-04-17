@@ -221,6 +221,10 @@ public class Lobby implements ChatRoom {
   }
   
   public boolean putPlayer(Player p, String message) {
+    return putPlayer(p, message, true);
+  }
+  
+  public boolean putPlayer(Player p, String message, boolean teleportIn) {
     persistence.pushInventory(p);
     ps_persistence.setPlayerState(p);
     
@@ -245,7 +249,7 @@ public class Lobby implements ChatRoom {
     p.setGameMode(GameMode.SURVIVAL);
     p.setVelocity(new Vector(0, 0, 0));
     inLobby.add(p); // IMPORTANT to add player *BEFORE* teleporting! See LobbyEvents#playerTeleport to understand why
-    p.teleport(lobbyWorld.getSpawnLocation());
+    if (teleportIn) p.teleport(lobbyWorld.getSpawnLocation());
     tracker.setState(p, PlayerState.LOBBY);
     
     display.show(p);
@@ -264,9 +268,6 @@ public class Lobby implements ChatRoom {
   
   public void removePlayer(Player p, String message, boolean teleport) {
     display.unshow(p);
-    display.setLine(1, String.format("Players: %d/%d", inLobby.size(), Globals.MAX_PLAYERS), false);
-    p.getInventory().clear();
-    p.removePotionEffect(PotionEffectType.SATURATION);
     
     boolean reassign_controls = false;
     if (p.getInventory().first(Globals.getNamedItem(Material.ARROW, Globals.STRING_START_HEIST)) >= 0) {
@@ -275,7 +276,11 @@ public class Lobby implements ChatRoom {
       reassign_controls = true;
     }
     
+    p.getInventory().clear();
+    p.removePotionEffect(PotionEffectType.SATURATION);
+    
     inLobby.remove(p);
+    display.setLine(1, String.format("Players: %d/%d", inLobby.size(), Globals.MAX_PLAYERS), false);
     
     if (inLobby.size() > 0 && reassign_controls) {
       PlayerInventory next = inLobby.get(0).getInventory();

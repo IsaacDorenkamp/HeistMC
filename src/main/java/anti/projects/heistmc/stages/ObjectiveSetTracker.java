@@ -30,6 +30,11 @@ public class ObjectiveSetTracker {
     return configuring;
   }
   
+  public boolean isConfiguring(Player p) {
+    if (actor == null) return false;
+    else return actor.equals(p);
+  }
+  
   public boolean startConfiguring(Player p, MissionObjective constructing, Consumer<MissionObjective> onFinish) {
     boolean success = constructing.onStartConfig(p);
     if (!success) {
@@ -44,6 +49,13 @@ public class ObjectiveSetTracker {
   
   public void stopConfiguring() {
     callback.accept(constructing);
+    configuring = false;
+    actor = null;
+    constructing = null;
+    callback = null;
+  }
+  
+  public void cancel() {
     configuring = false;
     actor = null;
     constructing = null;
