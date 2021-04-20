@@ -56,6 +56,15 @@ public class WorldManager {
     this.server = server;
   }
   
+  public boolean hasWorld(String name) {
+    for (World w : allWorlds) {
+      if (w.getName().equals(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   private void depopulate(World w) {
     Lobby forWorld = Lobby.getLobbyForWorld(w);
     if (forWorld != null) {

@@ -177,9 +177,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     if (teleport) {
       // VERY IMPORTANT to teleport *after* removing the player from the heist!
       // See HeistEvents#playerTeleport to understand why
-      if (persistence.hasEntry(p)) {
-        persistence.popInventory(p);
-      }
+      persistence.loadInventory(p, mgr.getMainWorld().getName());
       if (ps_persistence.hasEntry(p)) {
         ps_persistence.popPlayerState(p);
       }
@@ -222,9 +220,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     transferring = true;
     for (Player p : inHeist) {
       p.teleport(to);
-      if (persistence.hasEntry(p)) {
-        persistence.popInventory(p);
-      }
+      persistence.loadInventory(p, p.getWorld().getName());
       if (ps_persistence.hasEntry(p)) {
         ps_persistence.popPlayerState(p);
       }

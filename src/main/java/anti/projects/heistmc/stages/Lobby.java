@@ -193,13 +193,11 @@ public class Lobby implements ChatRoom {
       removePlayer(p, null, false);
       if (goToTarget) target.putPlayer(p);
       else {
-        if (persistence.hasEntry(p)) {
-          persistence.popInventory(p);
-        }
         if (ps_persistence.hasEntry(p)) {
           ps_persistence.popPlayerState(p);
         }
         p.teleport(mgr.getMainWorld().getSpawnLocation());
+        persistence.loadInventory(p, p.getWorld().getName());
       }
     }
     
@@ -225,12 +223,24 @@ public class Lobby implements ChatRoom {
   }
   
   public boolean putPlayer(Player p, String message, boolean teleportIn) {
-    persistence.pushInventory(p);
-    ps_persistence.setPlayerState(p);
-    
     PlayerState state = tracker.getState(p);
     if (state.equals(PlayerState.HEIST) || state.equals((PlayerState.LOBBY)) || inLobby.size() >= Globals.MAX_PLAYERS) {
       return false;
+    }
+    
+    boolean addItems = inLobby.size() == 0;
+    
+    inLobby.add(p); // IMPORTANT to add player *BEFORE* teleporting! See LobbyEvents#playerTeleport to understand why
+    if (teleportIn) {
+      p.setVelocity(new Vector(0, 0, 0));
+      p.teleport(lobbyWorld.getSpawnLocation());
+    }
+    p.setGameMode(GameMode.SURVIVAL);
+    tracker.setState(p, PlayerState.LOBBY);
+    
+    if (teleportIn) {
+      if (mgr.hasWorld(p.getWorld().getName())) persistence.saveInventory(p, p.getWorld().getName());
+      ps_persistence.setPlayerState(p);
     }
     
     p.setHealth(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
@@ -241,16 +251,10 @@ public class Lobby implements ChatRoom {
     p.getInventory().setItem(8, Globals.getLeaveStar());
     
     // first player in lobby has control over starting the heist
-    if (inLobby.size() == 0) {
+    if (addItems) {
       p.getInventory().setItem(7, Globals.getStartArrow());
       p.getInventory().setItem(6, Globals.getNamedItem(Material.PAPER, Globals.STRING_SELECT_MAP));
     }
-    
-    p.setGameMode(GameMode.SURVIVAL);
-    p.setVelocity(new Vector(0, 0, 0));
-    inLobby.add(p); // IMPORTANT to add player *BEFORE* teleporting! See LobbyEvents#playerTeleport to understand why
-    if (teleportIn) p.teleport(lobbyWorld.getSpawnLocation());
-    tracker.setState(p, PlayerState.LOBBY);
     
     display.show(p);
     display.setLine(1, String.format("Players: %d/%d", inLobby.size(), Globals.MAX_PLAYERS), false);
@@ -276,9 +280,6 @@ public class Lobby implements ChatRoom {
       reassign_controls = true;
     }
     
-    p.getInventory().clear();
-    p.removePotionEffect(PotionEffectType.SATURATION);
-    
     inLobby.remove(p);
     display.setLine(1, String.format("Players: %d/%d", inLobby.size(), Globals.MAX_PLAYERS), false);
     
@@ -289,10 +290,11 @@ public class Lobby implements ChatRoom {
     }
     
     if (teleport) {
+      p.getInventory().clear();
+      p.removePotionEffect(PotionEffectType.SATURATION);
+      
       p.teleport(mgr.getMainWorld().getSpawnLocation());
-      if (persistence.hasEntry(p)) {
-        persistence.popInventory(p);
-      }
+      persistence.loadInventory(p, p.getWorld().getName());
       if (ps_persistence.hasEntry(p)) {
         ps_persistence.popPlayerState(p);
       }

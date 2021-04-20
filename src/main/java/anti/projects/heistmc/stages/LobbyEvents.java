@@ -81,7 +81,7 @@ public class LobbyEvents implements Listener {
     Player p = evt.getPlayer();
     if (isForLobby(evt)) {
       if (!evt.getTo().getWorld().equals(lobbyFor.getWorld())) {
-        lobbyFor.removePlayer(p, "Player " + ChatColor.YELLOW + p.getName() + ChatColor.RESET + " left the lobby.");
+        lobbyFor.removePlayer(p, "Player " + ChatColor.YELLOW + p.getName() + ChatColor.RESET + " left the lobby.", false);
       }
     } else {
       if (evt.getTo().getWorld().equals(lobbyFor.getWorld())) {

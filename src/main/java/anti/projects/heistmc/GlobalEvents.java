@@ -23,10 +23,7 @@ public class GlobalEvents implements Listener {
   @EventHandler
   public void playerJoin(PlayerJoinEvent evt) {
     Player p = evt.getPlayer();
-    if (persistence.hasEntry(p)) {
-      System.out.println("POPPING INVENTORY");
-      persistence.popInventory(p);
-    }
+    persistence.loadInventory(p, p.getWorld().getName());
     if (ps_persistence.hasEntry(p)) {
       ps_persistence.popPlayerState(p);
     }

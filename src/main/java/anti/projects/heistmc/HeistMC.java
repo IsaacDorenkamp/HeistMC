@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -270,16 +271,22 @@ public class HeistMC extends JavaPlugin {
       if (sender instanceof Player) {
         p = (Player)sender;
       } else {
-        if (args.length == 1) p = server.getPlayer(args[0]);
-      }
-      
-      if (!tracker.getState(p).equals(PlayerState.ONLINE)) {
-        MessageUtil.send(sender, "Please finish your current activity before attempting to join a lobby.");
-        return true;
+        if (args.length == 1) {
+          try {
+            p = server.getPlayer(UUID.fromString(args[0]));
+          } catch (IllegalArgumentException iae) {
+            p = server.getPlayer(args[0]);
+          }
+        }
       }
       
       if (p == null) {
         MessageUtil.send(sender, "Cannot identify player.");
+        return true; // ignore
+      }
+      
+      if (!tracker.getState(p).equals(PlayerState.ONLINE)) {
+        MessageUtil.send(sender, "Please finish your current activity before attempting to join a lobby.");
         return true;
       }
       
@@ -339,7 +346,7 @@ public class HeistMC extends JavaPlugin {
         return true;
       }
       try {
-        invPersist.loadFrom(new File(Globals.INVENTORY_PERSIST_FILE));
+        invPersist = InventoryPersist.load(new File(Globals.INVENTORY_PERSIST_FILE));
       } catch(Exception e) {
         MessageUtil.send(sender, ChatColor.RED + "Reload failed.");
         return true;
@@ -348,17 +355,15 @@ public class HeistMC extends JavaPlugin {
       return true;
     } else if (cmd.equals("inv-push")) {
       if (sender instanceof Player) {
-        invPersist.pushInventory((Player)sender);
+        Player player = (Player)sender;
+        invPersist.saveInventory(player, player.getWorld().getName());
         MessageUtil.send(sender, "Inventory pushed.");
       }
       return true;
     } else if (cmd.equals("inv-pop")) {
       if (sender instanceof Player) {
-        if (invPersist.hasEntry((Player)sender)) {
-          invPersist.popInventory((Player)sender);
-        } else {
-          MessageUtil.send(sender, "There is no inventory entry for you.");
-        }
+        Player player = (Player)sender;
+        invPersist.loadInventory(player, player.getWorld().getName());
       }
       return true;
     } else if (cmd.startsWith("set-")) {

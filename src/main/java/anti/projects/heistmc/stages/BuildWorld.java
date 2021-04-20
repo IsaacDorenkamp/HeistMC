@@ -199,8 +199,14 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
   public void putPlayer(Player p) {
     if (building.contains(p))
       return;
-
-    persistence.pushInventory(p);
+    
+    String prevWorld = p.getWorld().getName();
+    
+    building.add(p);
+    p.teleport(world.getSpawnLocation());
+    tracker.setState(p, PlayerState.BUILD);
+    
+    if (mgr.hasWorld(prevWorld)) persistence.saveInventory(p, prevWorld);
     onEnter.put(p, p.getGameMode());
 
     p.setGameMode(GameMode.CREATIVE);
@@ -208,26 +214,26 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     p.getInventory().clear();
     p.getInventory().setItem(7, Globals.getMenuBook());
     p.getInventory().setItem(8, Globals.getLeaveStar());
-
-    building.add(p);
-    p.teleport(world.getSpawnLocation());
-    tracker.setState(p, PlayerState.BUILD);
   }
-
+  
   public void removePlayer(Player p) {
+    removePlayer(p, true);
+  }
+  
+  public void removePlayer(Player p, boolean teleportToLobby) {
     building.remove(p);
     if (mTracker.isConfiguring(p)) {
       mTracker.cancel();
     }
-    GameMode gm = onEnter.get(p);
-    p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);
-    p.getInventory().clear();
-    p.teleport(mgr.getMainWorld().getSpawnLocation());
-    tracker.setState(p, PlayerState.ONLINE);
+    if (teleportToLobby) {
+      p.getInventory().clear();
+      p.teleport(mgr.getMainWorld().getSpawnLocation());
+      GameMode gm = onEnter.get(p);
+      p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);
 
-    if (persistence.hasEntry(p)) {
-      persistence.popInventory(p);
+      persistence.loadInventory(p, p.getWorld().getName());
     }
+    tracker.setState(p, PlayerState.ONLINE);
   }
 
   public void evacuate() {
