@@ -6,9 +6,15 @@ path C:\Program Files\Java\jdk1.8.0_271/bin;%PATH%
 
 rem TODO - detect correct version!
 
+set /p VERSION=<"C:\Users\quant\eclipse-workspace\HeistMC\VERSION.txt"
+echo Installing version %VERSION%...
+
+set JAR_NAME=HeistMC-%VERSION%.jar
+set TARGET=C:\Users\quant\eclipse-workspace\HeistMC\target\%JAR_NAME%
+
 echo Copying plugin JAR...
-copy "C:\Users\quant\eclipse-workspace\HeistMC\target\HeistMC-1.0.0.jar" .
-rename HeistMC-1.0.0.jar HeistMC.jar
+copy %TARGET% .
+rename %JAR_NAME% HeistMC.jar
 
 echo Extracting AnvilGUI JAR...
 jar xf ../lib/anvilgui-1.4.0-SNAPSHOT.jar

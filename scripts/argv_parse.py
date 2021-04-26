@@ -2,7 +2,7 @@ class InvalidArgvError(RuntimeError):
     def __init__(self, message):
         RuntimeError.__init__(self, message)
 
-def _switch(name, value=''):
+def _switch(name, value=None):
     return { 'type': 'switch', 'name': name, 'value': value }
 
 def _flag(name):

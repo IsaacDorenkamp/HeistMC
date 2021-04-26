@@ -2,6 +2,8 @@
 
 import os
 from pathlib import Path
+import re
+import subprocess
 import sys
 
 import argv_parse
@@ -57,13 +59,53 @@ if __name__=='__main__':
     elif bump_type == "minor": minor += 1
     elif bump_type == "patch": patch += 1
 
-    print("Bumping to %d.%d.%d" % (major, minor, patch))
+    new_version = "%d.%d.%d" % (major, minor, patch)
 
-    # TODO: effectively apply version number
-    # Steps:
-    #   - write to VERSION.txt
-    #   - write to POM file, then run 'mvn install'
-    #   - create git tag (annotated!) AFTER previous steps to immortalize the built JAR on its own tag
-    #
-    # P.S. modify existing scripts to dynamically use version in VERSION.txt
-    
+    print("Updating VERSION.txt...")
+
+    version_file = open(version_filepath, 'w')
+    version_file.write(new_version)
+    version_file.close()
+
+    # write to POM file
+    print("Updating pom.xml...")
+    pom_filename = os.path.join(current.parent, "pom.xml")
+    pom_file = open(pom_filename, 'r')
+    pom = pom_file.read()
+    pom_file.close()
+
+    new_pom = re.sub(r'\<version\>[0-9]+\.[0-9]+(\.[0-9]+)?\<\/version\>', '<version>%s</version>' % new_version, pom)
+
+    pom_file = open(pom_filename, 'w')
+    pom_file.write(new_pom)
+    pom_file.close()
+
+    # update plugin.yml
+    print("Updating plugin.yml...")
+    plugin_filename = os.path.join(current.parent, "src", "main", "resources", "plugin.yml")
+    plugin_file = open(plugin_filename, 'r')
+    plugin_yml = plugin_file.read()
+    plugin_file.close()
+
+    new_plugin_yml = re.sub(r'\nversion: [0-9]+.[0-9]+(.[0-9]+)?\n', '\nversion: %s\n' % new_version, plugin_yml)
+
+    plugin_file = open(plugin_filename, 'w')
+    plugin_file.write(new_plugin_yml)
+    plugin_file.close()
+
+    # run maven install
+    print("Running 'mvn clean install'...")
+
+    installer = subprocess.Popen(["mvn", "clean", "install"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in iter(installer.stdout.readline, ""):
+        print("mvn | %s" % line)
+
+    # git release
+    print("Performing git release...")
+
+    proc_path = os.path.join(current, "git-release.bat")
+    releaser = subprocess.Popen([proc_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in iter(releaser.stdout.readline, ""):
+        print("git | %s" % line)
+
+    print("Successfully bumped to version %s!" % new_version)
