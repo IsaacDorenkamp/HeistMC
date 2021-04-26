@@ -16,9 +16,9 @@ if platform.system() == 'Windows':
     STDOUT_HANDLE = ctypes.windll.kernel32.GetStdHandle(STDOUT)
     def _write(text, color):
         c = colors[color][1]
-        print("Setting color to " + c)
         ctypes.windll.kernel32.SetConsoleTextAttribute(STDOUT_HANDLE, c)
         sys.stdout.write(text)
+        sys.stdout.flush()
         ctypes.windll.kernel32.SetConsoleTextAttribute(STDOUT_HANDLE, 0b1111)
         
     write = _write
