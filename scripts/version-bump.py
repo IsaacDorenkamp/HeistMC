@@ -110,7 +110,7 @@ if __name__=='__main__':
             lineStart = True
         else:
             if lineStart:
-                sys.stdout.write('mvn | ')
+                sys.stdout.write('\u001b[32mmvn | \u001b[0m')
                 lineStart = False
 
             sys.stdout.write(asStr)
@@ -133,7 +133,7 @@ if __name__=='__main__':
             lineStart = True
         else:
             if lineStart:
-                sys.stdout.write('git | ')
+                sys.stdout.write('\u001b[33mgit | \u001b[0m')
                 lineStart = False
 
             sys.stdout.write(asStr)
