@@ -96,9 +96,12 @@ if __name__=='__main__':
     # run maven install
     print("Running 'mvn clean install'...")
 
-    installer = subprocess.Popen(["mvn", "clean", "install"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    wd = os.getcwd()
+    os.chdir('..')
+    installer = subprocess.Popen("mvn clean install", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     for line in iter(installer.stdout.readline, ""):
         print("mvn | %s" % line)
+    os.chdir(wd)
 
     # git release
     print("Performing git release...")
