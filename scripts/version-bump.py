@@ -2,11 +2,13 @@
 
 import os
 from pathlib import Path
+import platform
 import re
 import subprocess
 import sys
 
 import argv_parse
+import text_color
 
 if __name__=='__main__':
 
@@ -110,7 +112,7 @@ if __name__=='__main__':
             lineStart = True
         else:
             if lineStart:
-                sys.stdout.write(u'\u001b[32mmvn | \u001b[0m')
+                text_color.write('mvn | ', 'green')
                 lineStart = False
 
             sys.stdout.write(asStr)
@@ -133,7 +135,7 @@ if __name__=='__main__':
             lineStart = True
         else:
             if lineStart:
-                sys.stdout.write(u'\u001b[33mgit | \u001b[0m')
+                text_color.write('git | ', 'yellow')
                 lineStart = False
 
             sys.stdout.write(asStr)
