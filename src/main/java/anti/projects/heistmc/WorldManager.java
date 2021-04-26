@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -20,6 +22,9 @@ import anti.projects.heistmc.stages.HeistWorld;
 import anti.projects.heistmc.stages.Lobby;
 
 public class WorldManager {
+  
+  private List<Consumer<World>> loadHooks;
+  private List<Consumer<World>> unloadHooks;
   
   private static boolean delete(File dir) {
     if (dir.exists()) {
@@ -54,9 +59,20 @@ public class WorldManager {
   
   public WorldManager(Server server) {
     this.server = server;
+    this.loadHooks = new ArrayList<>();
+    this.unloadHooks = new ArrayList<>();
+  }
+  
+  public void onLoad(Consumer<World> loadHook) {
+    loadHooks.add(loadHook);
+  }
+  
+  public void onUnload(Consumer<World> unloadHook) {
+    unloadHooks.add(unloadHook);
   }
   
   public boolean hasWorld(String name) {
+    if (getMainWorld().getName().equals(name)) return true;
     for (World w : allWorlds) {
       if (w.getName().equals(name)) {
         return true;
@@ -85,7 +101,10 @@ public class WorldManager {
   }
   
   public boolean delete(World w) {
-    System.out.println("Unload success: " + Bukkit.unloadWorld(w.getName(), false));
+    for (Consumer<World> hook : unloadHooks) {
+      hook.accept(w);
+    }
+    Bukkit.unloadWorld(w.getName(), false);
     File f = w.getWorldFolder();
     boolean deleted = delete(f);
     boolean fdeleted = f.delete();
@@ -142,6 +161,11 @@ public class WorldManager {
       worlds.add(world);
     }
     allWorlds.add(world);
+    
+    for (Consumer<World> hook : loadHooks) {
+      hook.accept(world);
+    }
+    
     return world;
   }
   

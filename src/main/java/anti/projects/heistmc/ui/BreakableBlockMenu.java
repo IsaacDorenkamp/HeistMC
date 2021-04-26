@@ -32,9 +32,9 @@ public class BreakableBlockMenu extends MenuPage {
         }
       }
     });
-    addItem(14, Material.WOODEN_AXE, "Configure Breakable Blocks", new MenuItemListener() {
+    addItem(14, Material.STONE_AXE, "Configure Breakable Blocks", new MenuItemListener() {
       public void onSelected() {
-        ItemStack breaker = Globals.getNamedItem(Material.WOODEN_AXE, Globals.STRING_TOGGLE_BREAKABLE);
+        ItemStack breaker = Globals.getNamedItem(Material.STONE_AXE, Globals.STRING_TOGGLE_BREAKABLE);
         if (viewer.getInventory().first(breaker) == -1) {
           @SuppressWarnings("rawtypes")
           HashMap m = viewer.getInventory().addItem(breaker);

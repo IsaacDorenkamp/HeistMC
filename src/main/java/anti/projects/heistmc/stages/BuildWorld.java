@@ -206,7 +206,9 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     p.teleport(world.getSpawnLocation());
     tracker.setState(p, PlayerState.BUILD);
     
-    if (mgr.hasWorld(prevWorld)) persistence.saveInventory(p, prevWorld);
+    if (mgr.hasWorld(prevWorld)) {
+      persistence.saveInventory(p, prevWorld);
+    }
     onEnter.put(p, p.getGameMode());
 
     p.setGameMode(GameMode.CREATIVE);
@@ -234,6 +236,10 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       persistence.loadInventory(p, p.getWorld().getName());
     }
     tracker.setState(p, PlayerState.ONLINE);
+  }
+  
+  public InventoryPersist getInvPersist() {
+    return persistence;
   }
 
   public void evacuate() {

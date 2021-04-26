@@ -191,6 +191,8 @@ public class Lobby implements ChatRoom {
     
     for (Player p : new ArrayList<Player>(inLobby)) {
       removePlayer(p, null, false);
+      p.getInventory().clear();
+      p.removePotionEffect(PotionEffectType.SATURATION);
       if (goToTarget) target.putPlayer(p);
       else {
         if (ps_persistence.hasEntry(p)) {
@@ -232,16 +234,13 @@ public class Lobby implements ChatRoom {
     
     inLobby.add(p); // IMPORTANT to add player *BEFORE* teleporting! See LobbyEvents#playerTeleport to understand why
     if (teleportIn) {
+      if (mgr.hasWorld(p.getWorld().getName())) persistence.saveInventory(p, p.getWorld().getName());
+      ps_persistence.setPlayerState(p);
       p.setVelocity(new Vector(0, 0, 0));
       p.teleport(lobbyWorld.getSpawnLocation());
     }
     p.setGameMode(GameMode.SURVIVAL);
     tracker.setState(p, PlayerState.LOBBY);
-    
-    if (teleportIn) {
-      if (mgr.hasWorld(p.getWorld().getName())) persistence.saveInventory(p, p.getWorld().getName());
-      ps_persistence.setPlayerState(p);
-    }
     
     p.setHealth(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
     p.setFoodLevel(20);

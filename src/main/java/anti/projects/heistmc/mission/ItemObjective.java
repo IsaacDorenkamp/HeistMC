@@ -51,8 +51,11 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
     List<Player> all = forWorld.getPlayers();
     ItemStack checkFor = Globals.getNamedItem(type, displayName);
     for (Player player : all) {
-      if (player.getInventory().first(checkFor) >= 0) {
-        return true;
+      for (ItemStack is : player.getInventory().getContents()) {
+        if (is == null) continue;
+        if (Globals.isNamedItem(is, type, displayName)) {
+          return true;
+        }
       }
     }
     return false;

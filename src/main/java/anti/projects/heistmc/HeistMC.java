@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -25,6 +26,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import anti.projects.heistmc.api.InternalPermissions;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
+import anti.projects.heistmc.api.WeaponsProvider;
 import anti.projects.heistmc.persist.InventoryPersist;
 import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.stages.BuildWorld;
@@ -58,6 +60,10 @@ public class HeistMC extends JavaPlugin {
     return Bukkit.getScheduler().scheduleSyncRepeatingTask(INSTANCE, r, 0L, period);
   }
   
+  public static int scheduleDelayedTask(final Runnable r, long delay) {
+    return Bukkit.getScheduler().scheduleSyncDelayedTask(INSTANCE, r, delay);
+  }
+  
   public static void descheduleRepeatedTask(int taskId) {
     Bukkit.getScheduler().cancelTask(taskId);
   }
@@ -73,6 +79,7 @@ public class HeistMC extends JavaPlugin {
   private GlobalEvents evts;
   private PlayerStateTracker tracker;
   private EntityTracker entities;
+  private WeaponsProvider provider;
   
   private InventoryPersist invPersist;
   private PlayerStatePersist psPersist;
@@ -138,8 +145,22 @@ public class HeistMC extends JavaPlugin {
     
     entities = new EntityTracker();
     server.getPluginManager().registerEvents(entities, this);
-    
     server.getPluginManager().registerEvents(selector, this);
+    
+    provider = new WeaponsProvider();
+    server.getPluginManager().registerEvents(provider, this);
+    
+    worldMgr.onLoad(new Consumer<World>() {
+      public void accept(World w) {
+        provider.registerWorld(w.getName());
+      }
+    });
+    
+    worldMgr.onUnload(new Consumer<World>() {
+      public void accept(World w) {
+        provider.unregisterWorld(w.getName());
+      }
+    });
     
     log = server.getLogger();
     
@@ -231,6 +252,10 @@ public class HeistMC extends JavaPlugin {
   
   public EntityTracker getEntityTracker() {
     return entities;
+  }
+  
+  public WeaponsProvider getWeaponsProvider() {
+    return provider;
   }
   
   @Override

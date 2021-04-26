@@ -81,9 +81,7 @@ public class BuildEvents implements Listener {
   }
   
   private boolean isForBuild(EntityDamageByEntityEvent evt) {
-    System.out.println("CHECKING");
     Entity target = evt.getEntity();
-    System.out.println("IS: " + world.isPlaceholderMob(target));
     return world.isPlaceholderMob(target);
   }
   
@@ -128,7 +126,7 @@ public class BuildEvents implements Listener {
       HeistWorldData data = world.getHeistWorldData();
       if (!HeistMC.getPermissions().hasPermission(p, Globals.PERMISSION_BUILD)) {
         evt.setCancelled(true);
-      } else if (Globals.isNamedItem(p.getInventory().getItemInMainHand(), Material.WOODEN_AXE, Globals.STRING_TOGGLE_BREAKABLE)) {
+      } else if (Globals.isNamedItem(p.getInventory().getItemInMainHand(), Material.STONE_AXE, Globals.STRING_TOGGLE_BREAKABLE)) {
         BreakableBlock instance = data.getBreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
         if (instance != null) {
           Material type = instance.getType();
@@ -161,6 +159,8 @@ public class BuildEvents implements Listener {
   public void playerTeleport(PlayerTeleportEvent evt) {
     if (isForBuild(evt)) {
       if (!evt.getTo().getWorld().equals(world.getWorld())) {
+        boolean loaded = world.getInvPersist().loadInventory(evt.getPlayer(), evt.getTo().getWorld().getName());
+        if (!loaded) evt.getPlayer().getInventory().clear();
         world.removePlayer(evt.getPlayer(), false);
       }
     } else {

@@ -8,8 +8,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class Globals {
-  public static final int MAX_LOBBIES = 1;
-  public static final int MAX_PLAYERS = 2;
+  public static final int MAX_LOBBIES = 2;
+  public static final int MAX_PLAYERS = 4;
   public static final int BUILD_SLOTS = 5;
   
   public static final String PLUGIN_NAME = "HeistMC";
@@ -61,6 +61,11 @@ public class Globals {
   public static final String PLAYER_STATE_PERSIST_FILE = "player_state_persist.dat";
   public static final String PERMISSIONS_FILE = "permissions.dat";
   
+  public static final String WEAPON_ROCKET_LAUNCHER = "Rocket Launcher";
+  public static final String WEAPON_GRENADE = "Grenade";
+  public static final String WEAPON_GRAPPLING_HOOK = "Grappling Hook";
+  public static final String WEAPON_C4 = "C4";
+  
   public static ItemStack getNamedItem(Material type, String name) {
     ItemStack stack = new ItemStack(type, 1);
     ItemMeta meta = stack.getItemMeta();
@@ -70,8 +75,7 @@ public class Globals {
   }
   
   public static boolean isNamedItem(ItemStack test, Material type, String name) {
-    return test != null && test.getType().equals(type) && test.getItemMeta().getDisplayName().equals(name)
-        && test.getAmount() == 1;
+    return test != null && test.getType().equals(type) && test.getItemMeta().getDisplayName().equals(name);
   }
   
   public static ItemStack getLeaveStar() {
