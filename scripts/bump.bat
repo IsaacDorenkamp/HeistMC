@@ -1,0 +1,1 @@
+python version-bump.py --type=%1
