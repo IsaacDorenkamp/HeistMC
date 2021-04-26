@@ -74,7 +74,7 @@ if __name__=='__main__':
     pom = pom_file.read()
     pom_file.close()
 
-    new_pom = re.sub(r'\<version\>[0-9]+\.[0-9]+(\.[0-9]+)?\<\/version\>', '<version>%s</version>' % new_version, pom)
+    new_pom = re.sub(r'\<version\>[0-9]+\.[0-9]+(\.[0-9]+)?\<\/version\>', '<version>%s</version>' % new_version, pom, count=1)
 
     pom_file = open(pom_filename, 'w')
     pom_file.write(new_pom)
@@ -97,18 +97,47 @@ if __name__=='__main__':
     print("Running 'mvn clean install'...")
 
     wd = os.getcwd()
-    os.chdir('..')
+    os.chdir(str(current.parent))
     installer = subprocess.Popen("mvn clean install", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line in iter(installer.stdout.readline, ""):
-        print("mvn | %s" % line)
+
+    lineStart = True
+    for ch in iter(lambda: installer.stdout.read(1), b''):
+        if ch == b'': continue
+
+        asStr = str(ch, 'utf-8')
+        if asStr == '\n':
+            sys.stdout.write('\n')
+            lineStart = True
+        else:
+            if lineStart:
+                sys.stdout.write('mvn | ')
+                lineStart = False
+
+            sys.stdout.write(asStr)
+            
     os.chdir(wd)
+
+    print()
 
     # git release
     print("Performing git release...")
 
     proc_path = os.path.join(current, "git-release.bat")
     releaser = subprocess.Popen([proc_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line in iter(releaser.stdout.readline, ""):
-        print("git | %s" % line)
+    for ch in iter(lambda: releaser.stdout.read(1), b''):
+        if ch == b'': continue
+
+        asStr = str(ch, 'utf-8')
+        if asStr == '\n':
+            sys.stdout.write('\n')
+            lineStart = True
+        else:
+            if lineStart:
+                sys.stdout.write('git | ')
+                lineStart = False
+
+            sys.stdout.write(asStr)
+
+    print()
 
     print("Successfully bumped to version %s!" % new_version)
