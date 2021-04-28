@@ -23,3 +23,4 @@ git add .
 git commit -m "Bump to version %VERSION%"
 git tag -a v%VERSION% -m "Bump to version %VERSION%"
 git push origin v%VERSION%
+git push origin main
