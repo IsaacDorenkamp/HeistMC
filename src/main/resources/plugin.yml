@@ -1,6 +1,6 @@
 name: HeistMC
 main: anti.projects.heistmc.HeistMC
-version: 1.2.1
+version: 1.3.3
 author: AntiWarIsaac
 api-version: 1.16
 commands:
@@ -39,6 +39,10 @@ commands:
   inv-pop:
     description: "Pop an entry off the inventory persist stack."
     usage: "Usage: /inv-pop"
+
+  money:
+    description: "Manipulate your money for development testing."
+    usage: "Usage: /money <amount>"
 
   set-developer:
     description: "Give a user developer permissions"

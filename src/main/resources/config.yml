@@ -6,6 +6,7 @@ commands:
   inv-reload: heistmc.developer
   inv-push: heistmc.developer
   inv-pop: heistmc.developer
+  money: heistmc.developer
   set-developer: heistmc.admin
   revoke-developer: heistmc.admin
   set-builder: heistmc.admin

@@ -17,6 +17,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryView;
 
 import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.HeistMC;
@@ -32,6 +33,8 @@ import anti.projects.heistmc.mission.MissionObjective;
 import anti.projects.heistmc.persist.InventoryPersist;
 import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.ui.ConfirmView;
+import anti.projects.heistmc.ui.InteractiveView;
+import anti.projects.heistmc.ui.UpgradeView;
 
 public class HeistWorld implements ChatRoom, CommandExecutor {
   private static ArrayList<HeistWorld> INSTANCES = new ArrayList<HeistWorld>();
@@ -64,7 +67,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
   private InventoryPersist persistence;
   private PlayerStatePersist ps_persistence;
   
-  private HashMap<UUID, ConfirmView> confirm = new HashMap<>();
+  private HashMap<UUID, InteractiveView> views = new HashMap<>();
   
   // heist world state
   private HeistWorldData data = null;
@@ -84,17 +87,17 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     return inHeist.containsKey(p.getUniqueId());
   }
   
-  public void showConfirmView(Player p, ConfirmView cv) {
-    p.openInventory(cv);
-    confirm.put(p.getUniqueId(), cv);
+  public void showView(Player p, InteractiveView view) {
+    p.openInventory(view);
+    views.put(p.getUniqueId(), view);
   }
   
-  public void revokeConfirmView(Player p) {
-    confirm.remove(p.getUniqueId());
+  public void revokeView(Player p) {
+    views.remove(p.getUniqueId());
   }
   
-  public ConfirmView getConfirmView(Player p) {
-    return confirm.get(p.getUniqueId());
+  public InteractiveView getView(Player p) {
+    return views.get(p.getUniqueId());
   }
   
   private void initialize(HeistMC p) {

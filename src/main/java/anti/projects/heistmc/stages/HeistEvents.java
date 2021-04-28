@@ -24,9 +24,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -41,11 +48,15 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import anti.projects.heistmc.Globals;
@@ -54,7 +65,10 @@ import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.WorldManager;
 import anti.projects.heistmc.api.BreakableBlock;
 import anti.projects.heistmc.api.HeistPlayer;
+import anti.projects.heistmc.api.Upgrade;
 import anti.projects.heistmc.ui.ConfirmView;
+import anti.projects.heistmc.ui.InteractiveView;
+import anti.projects.heistmc.ui.UpgradeView;
 
 public class HeistEvents implements Listener {
   private static final Random rng = new Random();
@@ -134,7 +148,6 @@ public class HeistEvents implements Listener {
         final ItemStack is = iframe.getItem();
         if (is == null) return;
         ItemMeta im = is.getItemMeta();
-        System.out.println("HERE");
         if (im.hasLore()) {
           List<String> lore = im.getLore();
           if (lore.size() > 0) {
@@ -184,12 +197,13 @@ public class HeistEvents implements Listener {
                   }
                 }
               });
-              world.showConfirmView(player, cv);
-              MessageUtil.send(player, String.format("That costs " + ChatColor.GREEN + "$%.2f", price));
+              world.showView(player, cv);
               evt.setCancelled(true);
             }
           }
         }
+      } else if (interacted instanceof ItemFrame) {
+        evt.setCancelled(true);
       }
     }
   }
@@ -197,7 +211,7 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void noBreakHanging(HangingBreakEvent evt) {
     if (isForHeist(evt)) {
-      if (evt.getCause().equals(RemoveCause.EXPLOSION)) {
+      if (!evt.getCause().equals(RemoveCause.EXPLOSION)) {
         evt.setCancelled(true);
       }
     }
@@ -212,7 +226,33 @@ public class HeistEvents implements Listener {
     if (isForHeist(evt)) {
       Location loc = evt.getBlock().getLocation();
       BreakableBlock bb = world.getData().getBreakableBlock(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-      if (bb == null) evt.setCancelled(true);
+      if (bb == null && !loc.getBlock().getType().equals(Material.FIRE)) evt.setCancelled(true);
+    }
+  }
+  
+  private boolean isForHeist(BlockEvent evt) {
+    return evt.getBlock().getWorld().equals(world.getWorld());
+  }
+  
+  @EventHandler
+  public void blockBurn(BlockBurnEvent evt) {
+    // prevent fire from incendiary explosions from consuming block, and put out fire
+    if (isForHeist(evt)) {
+      Block igniting = evt.getIgnitingBlock();
+      if (igniting != null && igniting.getType().equals(Material.FIRE)) {
+        igniting.setType(Material.AIR);
+      }
+      evt.setCancelled(true);
+    }
+  }
+  
+  @EventHandler
+  public void blockIgnite(BlockIgniteEvent evt) {
+    // prevent spread of fire from incendiary explosions
+    if (isForHeist(evt)) {
+      if (evt.getCause().equals(IgniteCause.SPREAD)) {
+        evt.setCancelled(true);
+      }
     }
   }
   
@@ -302,7 +342,18 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void entityCombust(EntityCombustEvent evt) {
     if (isForHeist(evt)) {
+      // prevent zombies burning in daylight
       evt.setCancelled(true);
+    }
+  }
+  
+  // high event priority to ensure this is processed *after* entityCombust
+  @EventHandler(priority=EventPriority.HIGH)
+  public void entityCombustByEntity(EntityCombustByEntityEvent evt) {
+    if (isForHeist(evt)) {
+      // allow lighting undead entities on fire, particularly (but not limited to)
+      // by means of using a sword with the "Molten Sword" upgrade
+      evt.setCancelled(false);
     }
   }
   
@@ -335,22 +386,44 @@ public class HeistEvents implements Listener {
   public void inventoryClick(InventoryClickEvent evt) {
     if (isForHeist(evt)) {
       Player p = (Player)evt.getWhoClicked();
-      ConfirmView cv = world.getConfirmView(p);
-      if (cv != null) {
-        ItemStack is = evt.getClickedInventory().getItem(evt.getSlot());
-        boolean close = true;
-        if (Globals.isNamedItem(is, Material.LIME_STAINED_GLASS_PANE, "Yes")) {
-          cv.getCallback().accept(true);
-        } else if (Globals.isNamedItem(is, Material.RED_STAINED_GLASS_PANE, "No")) {
-          cv.getCallback().accept(false);
-        } else {
-          close = false;
+      InteractiveView v = world.getView(p);
+      if (v != null) v.inventoryClicked(evt);
+    }
+  }
+  
+  @EventHandler
+  public void playerInteract(PlayerInteractEvent evt) {
+    if (isForHeist(evt)) {
+      if (evt.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+        Block b = evt.getClickedBlock();
+        if (b == null) return; // ignore
+        Location loc = b.getLocation();
+        if (world.getData().isUpgradeAnvil(loc)) {
+          Player player = evt.getPlayer();
+          world.showView(player, new UpgradeView(player));
+          evt.setCancelled(true);
         }
-        
-        if (close) p.closeInventory();
-        
-        evt.setResult(Result.DENY);
-        evt.setCancelled(true);
+      }
+      
+      ItemStack used = evt.getItem();
+      if (Globals.isNamedItem(used, Material.CROSSBOW, Globals.WEAPON_GRAPPLING_HOOK)) {
+        if (Upgrade.INSTA_GRAPPLE.itemHas(used)) {
+          CrossbowMeta cb = (CrossbowMeta)used.getItemMeta();
+          if (cb.hasChargedProjectiles()) {
+            // already loaded
+            return;
+          }
+          Inventory inv = evt.getPlayer().getInventory();
+          int slot = inv.first(Material.ARROW);
+          if (slot != -1) {
+            ItemStack is = inv.getItem(slot);
+            is.setAmount(is.getAmount() - 1);
+            inv.setItem(slot, is);
+            cb.addChargedProjectile(new ItemStack(Material.ARROW, 1));
+            used.setItemMeta(cb);
+            evt.setCancelled(true);
+          }
+        }
       }
     }
   }
@@ -358,8 +431,8 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void inventoryClose(InventoryCloseEvent evt) {
     if (isForHeist(evt)) {
-      if (world.getConfirmView((Player)evt.getPlayer()) != null) {
-        world.revokeConfirmView((Player)evt.getPlayer());
+      if (world.getView((Player)evt.getPlayer()) != null) {
+        world.revokeView((Player)evt.getPlayer());
       }
     }
   }

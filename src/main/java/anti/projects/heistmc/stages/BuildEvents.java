@@ -114,6 +114,10 @@ public class BuildEvents implements Listener {
     if (isForBuild(evt)) {
       if(!HeistMC.getPermissions().hasPermission(evt.getPlayer(), Globals.PERMISSION_BUILD)) {
         evt.setCancelled(true);
+      } else {
+        if (Globals.isNamedItem(evt.getPlayer().getInventory().getItemInMainHand(), Material.ANVIL, Globals.STRING_UPGRADE_ANVIL)) {
+          world.getHeistWorldData().addUpgradeAnvil(evt.getBlock().getLocation());
+        }
       }
     }
   }
@@ -141,6 +145,9 @@ public class BuildEvents implements Listener {
         }
         evt.setCancelled(true);
       } else {
+        if (data.isUpgradeAnvil(loc)) {
+          data.removeUpgradeAnvil(loc);
+        }
         data.removeBreakableAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()); // no-op if not breakable
       }
     }

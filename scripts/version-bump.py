@@ -57,9 +57,15 @@ if __name__=='__main__':
     minor = int(parts[1])
     patch = int(parts[2])
 
-    if bump_type == "major": major += 1
-    elif bump_type == "minor": minor += 1
-    elif bump_type == "patch": patch += 1
+    if bump_type == "major":
+        major += 1
+        minor = 0
+        patch = 0
+    elif bump_type == "minor":
+        minor += 1
+        patch = 0
+    elif bump_type == "patch":
+        patch += 1
 
     new_version = "%d.%d.%d" % (major, minor, patch)
 

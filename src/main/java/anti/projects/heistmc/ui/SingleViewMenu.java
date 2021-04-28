@@ -9,6 +9,8 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 
+import anti.projects.heistmc.Globals;
+
 public class SingleViewMenu extends Menu {
   
   private int slots;
@@ -59,7 +61,7 @@ public class SingleViewMenu extends Menu {
     addMenuListener(new MenuListener() {
 
       public boolean itemSelected(int slot, Material icon, String name, boolean isShift) {
-        pFor.playSound(pFor.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        pFor.playSound(pFor.getLocation(), Sound.UI_BUTTON_CLICK, Globals.UI_SOUND_VOLUME, 1f);
         return menu.itemSelected(slot, icon, name, isShift);
       }
       

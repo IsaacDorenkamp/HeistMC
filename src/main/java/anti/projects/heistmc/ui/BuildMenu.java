@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import anti.projects.heistmc.Globals;
@@ -37,7 +38,7 @@ public class BuildMenu extends MultiViewMenu {
   
   private void constructBaseMenu() {
     MenuPage base = getBaseMenu();
-    base.addItem(11, Material.COMPASS, Globals.STRING_SET_SPAWN, new MenuItemListener() {
+    base.addItem(12, Material.COMPASS, Globals.STRING_SET_SPAWN, new MenuItemListener() {
       public void onSelected() {
         Location l = viewer.getLocation();
         world.getWorld().setSpawnLocation(l);
@@ -51,25 +52,25 @@ public class BuildMenu extends MultiViewMenu {
         pushView(new MissionObjectiveMenu(world.getHeistWorldData().getObjectives(), BuildMenu.this, world.getMissionObjectiveTracker()));
       }
     });
-    base.addItem(15, Material.ZOMBIE_HEAD, Globals.STRING_HIDE_PLACEHOLDERS, new MenuItemListener() {
+    base.addItem(14, Material.ZOMBIE_HEAD, Globals.STRING_HIDE_PLACEHOLDERS, new MenuItemListener() {
       public void onSelected() {
         world.selectPlaceholderMobs(null);
         viewer.closeInventory();
       }
     });
     
-    base.addItem(29, Material.COBBLESTONE, "Breakable Blocks", new MenuItemListener() {
+    base.addItem(21, Material.COBBLESTONE, "Breakable Blocks", new MenuItemListener() {
       public void onSelected() {
         pushView(new BreakableBlockMenu(viewer, world));
       }
     });
     
-    base.addItem(31, Material.BOW, "Weapons", new MenuItemListener() {
+    base.addItem(22, Material.BOW, "Weapons", new MenuItemListener() {
       public void onSelected() {
         pushView(new WeaponsMenu(viewer));
       }
     });
-    base.addItem(33, Material.GOLD_INGOT, "Assign Prices", new MenuItemListener() {
+    base.addItem(23, Material.GOLD_INGOT, "Assign Prices", new MenuItemListener() {
       public void onSelected() {
         final AnvilGUI.Builder builder = new AnvilGUI.Builder();
         builder.plugin(HeistMC.getInstance());
@@ -119,6 +120,35 @@ public class BuildMenu extends MultiViewMenu {
           
         });
         builder.open(viewer);
+      }
+    });
+    base.addItem(30, Material.ANVIL, Globals.STRING_PLACE_UPGRADE_ANVIL, new MenuItemListener() {
+      public void onSelected() {
+        ItemStack upgradeAnvil = Globals.getNamedItem(Material.ANVIL, Globals.STRING_UPGRADE_ANVIL);
+        PlayerInventory inv = viewer.getInventory();
+        int held = inv.getHeldItemSlot();
+        
+        int slot = inv.first(upgradeAnvil);
+        if (slot < 7 && slot >= 0) {
+          held = slot;
+          inv.setHeldItemSlot(held);
+        } else {
+          if (slot != -1) {
+            inv.setItem(slot, null);
+          }
+          for (int i = 6; i >= 0; i--) {
+            if (inv.getItem(i) == null) {
+              held = i;
+              break;
+            }
+          }
+          if (held >= 7) {
+            held = 6;
+          }
+          inv.setHeldItemSlot(held);
+          inv.setItemInMainHand(upgradeAnvil);
+        }
+        viewer.closeInventory();
       }
     });
   }

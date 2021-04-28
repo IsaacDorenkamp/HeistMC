@@ -23,6 +23,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 
+import anti.projects.heistmc.api.HeistPlayer;
 import anti.projects.heistmc.api.InternalPermissions;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
@@ -422,6 +423,33 @@ public class HeistMC extends JavaPlugin {
         else {
           MessageUtil.send(sender, ChatColor.RED + "Cannot revoke that permission! Is that player an op?");
         }
+      }
+      return true;
+    } else if (cmd.equals("money")) {
+      if (args.length != 1) return false;
+      if (!(sender instanceof Player)) {
+        MessageUtil.send(sender, "Only developer *players* can use this command!");
+        return true;
+      }
+      
+      double amount;
+      try {
+        amount = Double.parseDouble(args[0]);
+      } catch (NumberFormatException nfe) {
+        return false;
+      }
+      
+      Player player = (Player)sender;
+      HeistWorld hw = HeistWorld.getInstanceForPlayer(player);
+      if (hw != null) {
+        HeistPlayer hp = hw.getHeistPlayer(player);
+        if (hp != null) {
+          hp.setMoney(hp.getMoney() + amount);
+        } else {
+          MessageUtil.send(player, "An unknown error occurred - your HeistPlayer instance could not be found.");
+        }
+      } else {
+        MessageUtil.send(player, "You are not in a heist; you cannot gain money.");
       }
       return true;
     } else if (sender instanceof Player) {

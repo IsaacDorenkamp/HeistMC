@@ -105,7 +105,7 @@ public class LocationObjective extends MissionObjective {
       p.getInventory().remove(compass);
       p.getInventory().remove(nametag);
       cfgmeta();
-      p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+      p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, Globals.UI_SOUND_VOLUME, 1f);
       return true;
     } else if (Globals.isNamedItem(holding, Material.NAME_TAG, Globals.STRING_SET_LOCATION_NAME)) {
       AnvilGUI.Builder builder = new AnvilGUI.Builder();

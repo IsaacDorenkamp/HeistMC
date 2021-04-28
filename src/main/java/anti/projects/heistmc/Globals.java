@@ -12,6 +12,8 @@ public class Globals {
   public static final int MAX_PLAYERS = 4;
   public static final int BUILD_SLOTS = 5;
   
+  public static final float UI_SOUND_VOLUME = 0.75f;
+  
   public static final String PLUGIN_NAME = "HeistMC";
   
   public static final String PERMISSION_BUILD = "heistmc.builder";
@@ -52,6 +54,11 @@ public class Globals {
   public static final String STRING_CONFIGURE_EQUIPMENT = "Configure Equipment";
   public static final String STRING_HIDE_PLACEHOLDERS = "Hide Placeholder Mobs";
   public static final String STRING_REMOVE_MOB = "Remove Enemy";
+  
+  public static final String STRING_UPGRADE_ANVIL = "Upgrade Anvil";
+  public static final String STRING_PLACE_UPGRADE_ANVIL = "Place " + STRING_UPGRADE_ANVIL;
+  
+  public static final String STRING_UPGRADES = "Upgrades";
   
   public static final String ID_LOBBY = "lobby";
   

@@ -96,7 +96,7 @@ public class ItemObjective extends MissionObjective implements OptionsMenuOwner 
         if (nametag != null) inv.remove(nametag);
         if (finish != null) inv.remove(finish);
         
-        evt.getPlayer().playSound(evt.getPlayer().getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        evt.getPlayer().playSound(evt.getPlayer().getLocation(), Sound.UI_BUTTON_CLICK, Globals.UI_SOUND_VOLUME, 1f);
         MessageUtil.send(evt.getPlayer(), "Configured item objective for item type " + ChatColor.YELLOW +
             Globals.getMaterialName(type) + ChatColor.RESET + " with name " + ChatColor.BOLD + displayName);
         cfgmeta();

@@ -12,6 +12,7 @@ import org.bukkit.scoreboard.Scoreboard;
 
 import anti.projects.heistmc.HeistMC;
 import anti.projects.heistmc.ui.SidebarDisplay;
+import net.md_5.bungee.api.ChatColor;
 
 public class HeistPlayer {
   
@@ -37,7 +38,7 @@ public class HeistPlayer {
     money = 0.00;
     
     scores = Bukkit.getScoreboardManager().getNewScoreboard();
-    scoreboard = new SidebarDisplay(scores, " HEISTMC ");
+    scoreboard = new SidebarDisplay(scores, ChatColor.BOLD + " HEISTMC ");
     scoreboard.addLine("", true);
     scoreboard.addLine("Money", true);
     scoreboard.blit();

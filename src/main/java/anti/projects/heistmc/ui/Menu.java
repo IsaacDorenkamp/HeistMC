@@ -11,6 +11,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import anti.projects.heistmc.Globals;
+
 public abstract class Menu implements MenuView {
   
   private List<MenuListener> listeners;
@@ -39,7 +41,7 @@ public abstract class Menu implements MenuView {
       for (HumanEntity he : evt.getViewers()) {
         if (he instanceof Player) {
           Player p = (Player)he;
-          p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+          p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, Globals.UI_SOUND_VOLUME, 1f);
         }
       }
     }

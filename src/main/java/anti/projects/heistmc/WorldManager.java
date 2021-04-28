@@ -81,6 +81,11 @@ public class WorldManager {
     return false;
   }
   
+  public boolean isCreatedWorld(String name) {
+    if (name.equals(getMainWorld().getName())) return false;
+    else return hasWorld(name);
+  }
+  
   private void depopulate(World w) {
     Lobby forWorld = Lobby.getLobbyForWorld(w);
     if (forWorld != null) {

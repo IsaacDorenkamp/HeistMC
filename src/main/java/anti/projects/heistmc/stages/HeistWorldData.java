@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.bukkit.Location;
+
 import anti.projects.heistmc.api.BreakableBlock;
 import anti.projects.heistmc.api.DataSectionType;
 import anti.projects.heistmc.mission.MissionObjective;
@@ -23,9 +25,11 @@ import anti.projects.heistmc.mission.MissionObjective;
 public class HeistWorldData {
   private List<MissionObjective> objectives;
   private List<BreakableBlock> breakableBlocks;
+  private List<Location> upgradeAnvils;
   public HeistWorldData() {
     objectives = new ArrayList<MissionObjective>();
     breakableBlocks = new ArrayList<BreakableBlock>();
+    upgradeAnvils = new ArrayList<Location>();
   }
   
   public void addObjective(MissionObjective obj) {
@@ -59,6 +63,36 @@ public class HeistWorldData {
       BreakableBlock bb = it.next();
       if (bb.getX() == x && bb.getY() == y && bb.getZ() == z) {
         it.remove();
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public void addUpgradeAnvil(Location loc) {
+    loc.setWorld(null);
+    upgradeAnvils.add(loc);
+  }
+  
+  public boolean isUpgradeAnvil(Location loc) {
+    for (Location anv : upgradeAnvils) {
+      if (anv.getX() == loc.getX() && anv.getY() == loc.getY() && anv.getZ() == loc.getZ()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public List<Location> getUpgradeAnvils() {
+    return new ArrayList<>(upgradeAnvils);
+  }
+  
+  public boolean removeUpgradeAnvil(Location loc) {
+    Iterator<Location> anvs = upgradeAnvils.iterator();
+    while (anvs.hasNext()) {
+      Location anv = anvs.next();
+      if (anv.getX() == loc.getX() && anv.getY() == loc.getY() && anv.getZ() == loc.getZ()) {
+        anvs.remove();
         return true;
       }
     }
