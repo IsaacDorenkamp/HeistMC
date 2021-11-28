@@ -138,6 +138,26 @@ public class HeistEvents implements Listener {
     }
   }
   
+  private boolean isPurchasable(ItemStack is) {
+    ItemMeta im = is.getItemMeta();
+    if (im.hasLore()) {
+      List<String> lore = im.getLore();
+      if (lore.size() > 0) {
+        String priceLine = lore.get(0);
+        
+        if (priceLine.matches(".*Price:\\s\\$[0-9]+(\\.[0-9]{2})?$")) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+  
   @EventHandler
   public void itemFrame(EntityDamageByEntityEvent evt) {
     if (isForHeist(evt)) {
@@ -148,59 +168,53 @@ public class HeistEvents implements Listener {
         final ItemStack is = iframe.getItem();
         if (is == null) return;
         ItemMeta im = is.getItemMeta();
-        if (im.hasLore()) {
+        if (isPurchasable(is)) {
           List<String> lore = im.getLore();
-          if (lore.size() > 0) {
-            String priceLine = lore.get(0);
-            
-            final String finalName;
-            if (lore.size() >= 2) {
-              finalName = lore.get(1);
-            } else {
-              finalName = im.getDisplayName();
-            }
-            
-            final HeistPlayer hp = world.getHeistPlayer(player);
-            if (hp == null) {
-              evt.setCancelled(true);
-              return;
-            }
-              
-            
-            if (priceLine.matches(".*Price:\\s\\$[0-9]+(\\.[0-9]{2})?$")) {
-              final double price = Double.parseDouble(priceLine.split("\\$")[1]);
-              
-              if (hp.getMoney() < price) {
-                MessageUtil.send(player, ChatColor.RED + "" + ChatColor.BOLD + "You can't afford that!");
-                evt.setCancelled(true);
-                return;
-              }
-              
-              String title = String.format("Cost: $%.2f. Purchase?", price);
-              ConfirmView cv = new ConfirmView(player, title, new Consumer<Boolean>() {
-                public void accept(Boolean b) {
-                  if (b.equals(true)) {
-                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1f, 1f);
-                    ItemStack item = is.clone();
-                    ItemMeta meta = item.getItemMeta();
-                    meta.setDisplayName(finalName);
-                    meta.setLore(null);
-                    item.setItemMeta(meta);
-                    // TODO - owner meta?
-                    player.getInventory().addItem(item);
-                    
-                    if (hp.getMoney() >= price) {
-                      hp.setMoney(hp.getMoney() - price);
-                    } else {
-                      MessageUtil.send(player, ChatColor.RED + "" + ChatColor.BOLD + "You can't afford that!");
-                    }
-                  }
-                }
-              });
-              world.showView(player, cv);
-              evt.setCancelled(true);
-            }
+          String priceLine = lore.get(0);
+          final String finalName;
+          if (lore.size() >= 2) {
+            finalName = lore.get(1);
+          } else {
+            finalName = im.getDisplayName();
           }
+          
+          final HeistPlayer hp = world.getHeistPlayer(player);
+          if (hp == null) {
+            evt.setCancelled(true);
+            return;
+          }
+          
+          final double price = Double.parseDouble(priceLine.split("\\$")[1]);
+          
+          if (hp.getMoney() < price) {
+            MessageUtil.send(player, ChatColor.RED + "" + ChatColor.BOLD + "You can't afford that!");
+            evt.setCancelled(true);
+            return;
+          }
+          
+          String title = String.format("Cost: $%.2f. Purchase?", price);
+          ConfirmView cv = new ConfirmView(player, title, new Consumer<Boolean>() {
+            public void accept(Boolean b) {
+              if (b.equals(true)) {
+                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1f, 1f);
+                ItemStack item = is.clone();
+                ItemMeta meta = item.getItemMeta();
+                meta.setDisplayName(finalName);
+                meta.setLore(null);
+                item.setItemMeta(meta);
+                // TODO - owner meta?
+                player.getInventory().addItem(item);
+                
+                if (hp.getMoney() >= price) {
+                  hp.setMoney(hp.getMoney() - price);
+                } else {
+                  MessageUtil.send(player, ChatColor.RED + "" + ChatColor.BOLD + "You can't afford that!");
+                }
+              }
+            }
+          });
+          world.showView(player, cv);
+          evt.setCancelled(true);
         }
       } else if (interacted instanceof ItemFrame) {
         evt.setCancelled(true);
@@ -211,8 +225,14 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void noBreakHanging(HangingBreakEvent evt) {
     if (isForHeist(evt)) {
-      if (!evt.getCause().equals(RemoveCause.EXPLOSION)) {
-        evt.setCancelled(true);
+      if (evt.getEntity() instanceof ItemFrame) {
+        ItemFrame iframe = (ItemFrame)evt.getEntity();
+        ItemStack item = iframe.getItem();
+        if (item != null) {
+          if (isPurchasable(item)) {
+            evt.setCancelled(true);
+          }
+        }
       }
     }
   }
@@ -278,12 +298,6 @@ public class HeistEvents implements Listener {
   @EventHandler
   public void entityDamage(EntityDamageEvent evt) {
     if (isForHeist(evt)) {
-      
-      if (evt.getCause().equals(DamageCause.ENTITY_EXPLOSION)) {
-        evt.setCancelled(true);
-        return;
-      }
-      
       if (evt.getEntity() instanceof Player) {
         // TODO - allow multiple deaths
         final Player p = (Player)evt.getEntity();
