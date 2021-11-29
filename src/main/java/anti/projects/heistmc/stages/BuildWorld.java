@@ -196,8 +196,6 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     if (building.contains(p))
       return;
     
-    String prevWorld = p.getWorld().getName();
-    
     building.add(p);
     p.teleport(world.getSpawnLocation());
     tracker.setState(p, PlayerState.BUILD);
@@ -219,8 +217,8 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     if (mTracker.isConfiguring(p)) {
       mTracker.cancel();
     }
+    Globals.clearState(p);
     if (teleportToLobby) {
-      p.getInventory().clear();
       p.teleport(mgr.getMainWorld().getSpawnLocation());
       GameMode gm = onEnter.get(p);
       p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);

@@ -276,6 +276,8 @@ public class Lobby implements ChatRoom {
       next.setItem(7, Globals.getNamedItem(Material.ARROW, Globals.STRING_START_HEIST));
     }
     
+    Globals.clearState(p);
+    
     if (teleport) {
       p.teleport(mgr.getMainWorld().getSpawnLocation());
       tracker.setState(p, PlayerState.ONLINE);

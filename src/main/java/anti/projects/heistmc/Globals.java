@@ -4,8 +4,11 @@ import java.util.HashMap;
 import java.util.Set;
 
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffectType;
 
 public class Globals {
   public static final int MAX_LOBBIES = 2;
@@ -127,5 +130,16 @@ public class Globals {
       newParts[idx++] = (part.substring(0, 1).toUpperCase()) + (part.substring(1).toLowerCase());
     }
     return String.join(" ", newParts);
+  }
+  
+  public static void clearState(Player p) {
+    p.getInventory().clear();
+    p.setHealth(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+    p.setFoodLevel(20);
+    for (PotionEffectType type : PotionEffectType.values()) {
+      p.removePotionEffect(type);
+    }
+    p.setExp(0f);
+    p.setLevel(0);
   }
 }

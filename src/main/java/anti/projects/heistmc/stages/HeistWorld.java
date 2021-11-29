@@ -17,7 +17,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.InventoryView;
 
 import anti.projects.heistmc.Globals;
 import anti.projects.heistmc.HeistMC;
@@ -30,9 +29,7 @@ import anti.projects.heistmc.api.HeistWorldState;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.mission.MissionObjective;
-import anti.projects.heistmc.ui.ConfirmView;
 import anti.projects.heistmc.ui.InteractiveView;
-import anti.projects.heistmc.ui.UpgradeView;
 
 public class HeistWorld implements ChatRoom, CommandExecutor {
   private static ArrayList<HeistWorld> INSTANCES = new ArrayList<HeistWorld>();
@@ -219,7 +216,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
       tracker.setState(p, PlayerState.ONLINE);
     }
     MessageUtil.sendToRoom(this, message);
-    
+    Globals.clearState(p);
     if (inHeist.size() == 0) {
       cleanup_map();
       inProgress = false;
@@ -263,6 +260,7 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
         for (HeistPlayer hp : inHeist.values()) {
           hp.cleanup();
           Player p = hp.getPlayer();
+          Globals.clearState(p);
           p.teleport(to);
           tracker.setState(p, PlayerState.ONLINE);
         }

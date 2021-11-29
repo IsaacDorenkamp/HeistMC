@@ -198,6 +198,8 @@ public class KillObjective extends MissionObjective implements OptionsMenuOwner 
       
       cfgmeta();
       
+      bw.selectPlaceholderMobs(null);
+      
       return true;
     } else if (Globals.isNamedItem(is, Material.ANVIL, Globals.STRING_CONFIGURE_EQUIPMENT)) {
       Inventory inv = Bukkit.createInventory(p, InventoryType.HOPPER);
