@@ -194,8 +194,7 @@ public class KillObjective extends MissionObjective implements OptionsMenuOwner 
       }
       
       p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, Globals.UI_SOUND_VOLUME, 1f);
-      MessageUtil.send(p, String.format("Configured Kill Objective with %d %s%s", entities.size(), entities.get(0).type,
-          entities.size() > 1 ? "s" : ""));
+      MessageUtil.send(p, "Configured Kill Objective");
       
       cfgmeta();
       

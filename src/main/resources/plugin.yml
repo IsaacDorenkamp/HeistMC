@@ -28,18 +28,6 @@ commands:
     description: "Export a HeistMC map as the map to be used for waiting lobbies."
     usage: "Usage: /export-lobby"
 
-  inv-reload:
-    description: "Reload inventory persistence"
-    usage: "Usage: /inv-reload"
-
-  inv-push:
-    description: "Push an entry on the inventory persist stack."
-    usage: "Usage: /inv-push"
-
-  inv-pop:
-    description: "Pop an entry off the inventory persist stack."
-    usage: "Usage: /inv-pop"
-
   money:
     description: "Manipulate your money for development testing."
     usage: "Usage: /money <amount>"

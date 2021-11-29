@@ -6,27 +6,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import anti.projects.heistmc.persist.InventoryPersist;
-import anti.projects.heistmc.persist.PlayerStatePersist;
-
 public class GlobalEvents implements Listener {
   
   private WorldManager mgr;
-  private InventoryPersist persistence;
-  private PlayerStatePersist ps_persistence;
-  public GlobalEvents(WorldManager mgr, InventoryPersist persistence, PlayerStatePersist ps_persistence) {
+  public GlobalEvents(WorldManager mgr) {
     this.mgr = mgr;
-    this.persistence = persistence;
-    this.ps_persistence = ps_persistence;
   }
   
   @EventHandler
   public void playerJoin(PlayerJoinEvent evt) {
     Player p = evt.getPlayer();
-    persistence.loadInventory(p, p.getWorld().getName());
-    if (ps_persistence.hasEntry(p)) {
-      ps_persistence.popPlayerState(p);
-    }
   }
   
   @EventHandler

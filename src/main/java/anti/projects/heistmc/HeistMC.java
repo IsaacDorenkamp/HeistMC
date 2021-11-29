@@ -28,8 +28,6 @@ import anti.projects.heistmc.api.InternalPermissions;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.api.WeaponsProvider;
-import anti.projects.heistmc.persist.InventoryPersist;
-import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.stages.BuildWorld;
 import anti.projects.heistmc.stages.HeistWorld;
 import anti.projects.heistmc.stages.Lobby;
@@ -81,9 +79,6 @@ public class HeistMC extends JavaPlugin {
   private PlayerStateTracker tracker;
   private EntityTracker entities;
   private WeaponsProvider provider;
-  
-  private InventoryPersist invPersist;
-  private PlayerStatePersist psPersist;
   
   private BuildWorldSelector selector = new BuildWorldSelector();
   
@@ -165,36 +160,7 @@ public class HeistMC extends JavaPlugin {
     
     log = server.getLogger();
     
-    try {
-      invPersist = InventoryPersist.load(new File(data, Globals.INVENTORY_PERSIST_FILE));
-    } catch (IllegalArgumentException iae) {
-      log.severe("Inventory persist file is corrupted; using blank inventory persistance handler.");
-    } catch (FileNotFoundException fnfe) {
-      log.info("No inventory persist file, using blank inventory persistance handler. This is not an error - it is expected behavior on the first startup or after a data file purge.");
-    } catch (IOException ioe) {
-      ioe.printStackTrace();
-      log.severe("Failed to read inventory persist file; using blank inventory persistance handler.");
-    } finally {
-      if (invPersist == null) {
-        invPersist = new InventoryPersist();
-      }
-    }
-    
-    try {
-      psPersist = PlayerStatePersist.load(new File(data, Globals.PLAYER_STATE_PERSIST_FILE));
-    } catch (FileNotFoundException fnfe) {
-      log.info("No player state persist file, using fresh handler");
-    } catch (IOException ioe) {
-      log.severe("Failed to read player state file!");
-    } catch (IllegalArgumentException iae) {
-      log.severe("Player state file seems to be corrupted, using blank handler");
-    } finally {
-      if (psPersist == null) {
-        psPersist = new PlayerStatePersist();
-      }
-    }
-    
-    evts = new GlobalEvents(worldMgr, invPersist, psPersist);
+    evts = new GlobalEvents(worldMgr);
     server.getPluginManager().registerEvents(evts, this);
   }
   
@@ -218,25 +184,6 @@ public class HeistMC extends JavaPlugin {
 
     // unload and delete non-persistent worlds
     worldMgr.purge();
-    try {
-      invPersist.save(new File(getDataFolder(), Globals.INVENTORY_PERSIST_FILE));
-    } catch (IOException ioe) {
-      log.severe("FAILED TO SAVE INVENTORY PERSIST FILE - players will lose their inventory data!");
-    }
-    
-    try {
-      psPersist.save(new File(getDataFolder(), Globals.PLAYER_STATE_PERSIST_FILE));
-    } catch (IOException ioe) {
-      log.severe("FAILED TO SAVE PLAYER STATE PERSIST FILE - players may notice unexpected health/food levels");
-    }
-  }
-  
-  public InventoryPersist getInventoryPersist() {
-    return invPersist;
-  }
-  
-  public PlayerStatePersist getPlayerStatePersist() {
-    return psPersist;
   }
   
   public WorldManager getWorldManager() {
@@ -364,34 +311,6 @@ public class HeistMC extends JavaPlugin {
         selector.show(p, onSlotSelect);
         return true;
       }
-    } else if (cmd.equals("inv-reload")) {
-      try {
-        invPersist.save(new File(Globals.INVENTORY_PERSIST_FILE));
-      } catch(Exception e) {
-        MessageUtil.send(sender, ChatColor.RED + "Reload failed.");
-        return true;
-      }
-      try {
-        invPersist = InventoryPersist.load(new File(Globals.INVENTORY_PERSIST_FILE));
-      } catch(Exception e) {
-        MessageUtil.send(sender, ChatColor.RED + "Reload failed.");
-        return true;
-      }
-      MessageUtil.send(sender, ChatColor.GREEN + "Reload succeeded.");
-      return true;
-    } else if (cmd.equals("inv-push")) {
-      if (sender instanceof Player) {
-        Player player = (Player)sender;
-        invPersist.saveInventory(player, player.getWorld().getName());
-        MessageUtil.send(sender, "Inventory pushed.");
-      }
-      return true;
-    } else if (cmd.equals("inv-pop")) {
-      if (sender instanceof Player) {
-        Player player = (Player)sender;
-        invPersist.loadInventory(player, player.getWorld().getName());
-      }
-      return true;
     } else if (cmd.startsWith("set-")) {
       if (args.length != 1) {
         return false;

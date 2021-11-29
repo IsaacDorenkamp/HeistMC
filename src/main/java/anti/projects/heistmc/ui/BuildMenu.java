@@ -17,7 +17,6 @@ import anti.projects.heistmc.MessageUtil;
 import anti.projects.heistmc.stages.BuildWorld;
 import net.md_5.bungee.api.ChatColor;
 import net.wesjd.anvilgui.AnvilGUI;
-import net.wesjd.anvilgui.AnvilGUI.Builder;
 import net.wesjd.anvilgui.AnvilGUI.Response;
 import net.wesjd.anvilgui.AnvilGUI.Slot;
 
@@ -82,7 +81,13 @@ public class BuildMenu extends MultiViewMenu {
               if (is != null && !is.getType().isAir()) {
                 ItemStack copy = is.clone();
                 ItemMeta meta = copy.getItemMeta();
-                meta.setLore(Arrays.asList(new String[] { meta.getDisplayName() }));
+                String name;
+                if (meta.hasDisplayName()) {
+                  name = meta.getDisplayName();
+                } else {
+                  name = Globals.getMaterialName(copy.getType());
+                }
+                meta.setLore(Arrays.asList(new String[] { name }));
                 meta.setDisplayName("0");
                 copy.setItemMeta(meta);
                 player.getOpenInventory().setItem(Slot.INPUT_LEFT, copy);

@@ -30,8 +30,6 @@ import anti.projects.heistmc.api.HeistWorldState;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.mission.MissionObjective;
-import anti.projects.heistmc.persist.InventoryPersist;
-import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.ui.ConfirmView;
 import anti.projects.heistmc.ui.InteractiveView;
 import anti.projects.heistmc.ui.UpgradeView;
@@ -64,8 +62,6 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
   private WorldManager mgr;
   private MapManager mapMgr;
   private PlayerStateTracker tracker;
-  private InventoryPersist persistence;
-  private PlayerStatePersist ps_persistence;
   
   private HashMap<UUID, InteractiveView> views = new HashMap<>();
   
@@ -104,8 +100,6 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     mgr = p.getWorldManager();
     mapMgr = p.getMapManager();
     tracker = p.getStateTracker();
-    persistence = p.getInventoryPersist();
-    ps_persistence = p.getPlayerStatePersist();
     evts = new HeistEvents(this, mgr);
     this.world = null;
     
@@ -221,13 +215,6 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
     if (teleport) {
       // VERY IMPORTANT to teleport *after* removing the player from the heist!
       // See HeistEvents#playerTeleport to understand why
-      boolean loaded = persistence.loadInventory(p, mgr.getMainWorld().getName());
-      if (!loaded) {
-        p.getInventory().clear();
-      }
-      if (ps_persistence.hasEntry(p)) {
-        ps_persistence.popPlayerState(p);
-      }
       p.teleport(mgr.getMainWorld().getSpawnLocation());
       tracker.setState(p, PlayerState.ONLINE);
     }
@@ -277,11 +264,6 @@ public class HeistWorld implements ChatRoom, CommandExecutor {
           hp.cleanup();
           Player p = hp.getPlayer();
           p.teleport(to);
-          boolean loaded = persistence.loadInventory(p, to.getWorld().getName());
-          if (!loaded) p.getInventory().clear();
-          if (ps_persistence.hasEntry(p)) {
-            ps_persistence.popPlayerState(p);
-          }
           tracker.setState(p, PlayerState.ONLINE);
         }
         transferring = false;

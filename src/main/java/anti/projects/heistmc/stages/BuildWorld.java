@@ -48,7 +48,6 @@ import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
 import anti.projects.heistmc.mission.KillObjective;
 import anti.projects.heistmc.mission.MissionObjective;
-import anti.projects.heistmc.persist.InventoryPersist;
 import anti.projects.heistmc.ui.MenuView;
 
 public class BuildWorld implements ChatRoom, CommandExecutor {
@@ -75,7 +74,6 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
 
   private HeistWorldData data = new HeistWorldData();
   private ObjectiveSetTracker mTracker = new ObjectiveSetTracker(data.getObjectives(), this);
-  private InventoryPersist persistence;
 
   private World world;
 
@@ -88,13 +86,11 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
 
   private static Logger log = null;
 
-  private BuildWorld(PlayerStateTracker tracker, WorldManager mgr, MapManager maps, InventoryPersist persist,
-      String key) {
+  private BuildWorld(PlayerStateTracker tracker, WorldManager mgr, MapManager maps, String key) {
     this.tracker = tracker;
     this.mgr = mgr;
     this.maps = maps;
     world = mgr.getOrBlank(String.format("build_" + key), true);
-    persistence = persist;
     building = new ArrayList<Player>();
   }
 
@@ -205,10 +201,6 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     building.add(p);
     p.teleport(world.getSpawnLocation());
     tracker.setState(p, PlayerState.BUILD);
-    
-    if (mgr.hasWorld(prevWorld)) {
-      persistence.saveInventory(p, prevWorld);
-    }
     onEnter.put(p, p.getGameMode());
 
     p.setGameMode(GameMode.CREATIVE);
@@ -232,14 +224,8 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
       p.teleport(mgr.getMainWorld().getSpawnLocation());
       GameMode gm = onEnter.get(p);
       p.setGameMode(gm == null ? GameMode.SURVIVAL : gm);
-
-      persistence.loadInventory(p, p.getWorld().getName());
     }
     tracker.setState(p, PlayerState.ONLINE);
-  }
-  
-  public InventoryPersist getInvPersist() {
-    return persistence;
   }
 
   public void evacuate() {
@@ -428,8 +414,7 @@ public class BuildWorld implements ChatRoom, CommandExecutor {
     
     MessageUtil.send(p, "Initializing build world, this may take a second...");
 
-    BuildWorld w = new BuildWorld(m.getStateTracker(), m.getWorldManager(), m.getMapManager(), m.getInventoryPersist(),
-        key);
+    BuildWorld w = new BuildWorld(m.getStateTracker(), m.getWorldManager(), m.getMapManager(), key);
     w.showBreakableBlocks();
     w.getWorld().setSpawnFlags(false, false);
     w.initialize(m);

@@ -28,8 +28,6 @@ import anti.projects.heistmc.WorldManager;
 import anti.projects.heistmc.api.ChatRoom;
 import anti.projects.heistmc.api.PlayerState;
 import anti.projects.heistmc.api.PlayerStateTracker;
-import anti.projects.heistmc.persist.InventoryPersist;
-import anti.projects.heistmc.persist.PlayerStatePersist;
 import anti.projects.heistmc.ui.SidebarDisplay;
 
 public class Lobby implements ChatRoom {
@@ -90,8 +88,6 @@ public class Lobby implements ChatRoom {
   
   private WorldManager mgr;
   private PlayerStateTracker tracker;
-  private InventoryPersist persistence;
-  private PlayerStatePersist ps_persistence;
   
   private SidebarDisplay display;
   
@@ -146,8 +142,6 @@ public class Lobby implements ChatRoom {
     
     mgr = p.getWorldManager();
     tracker = p.getStateTracker();
-    persistence = p.getInventoryPersist();
-    ps_persistence = p.getPlayerStatePersist();
     target = HeistWorld.createInstance(p);
   }
   
@@ -195,11 +189,7 @@ public class Lobby implements ChatRoom {
       p.removePotionEffect(PotionEffectType.SATURATION);
       if (goToTarget) target.putPlayer(p);
       else {
-        if (ps_persistence.hasEntry(p)) {
-          ps_persistence.popPlayerState(p);
-        }
         p.teleport(mgr.getMainWorld().getSpawnLocation());
-        persistence.loadInventory(p, p.getWorld().getName());
       }
     }
     
@@ -234,8 +224,6 @@ public class Lobby implements ChatRoom {
     
     inLobby.add(p); // IMPORTANT to add player *BEFORE* teleporting! See LobbyEvents#playerTeleport to understand why
     if (teleportIn) {
-      if (mgr.hasWorld(p.getWorld().getName())) persistence.saveInventory(p, p.getWorld().getName());
-      ps_persistence.setPlayerState(p);
       p.setVelocity(new Vector(0, 0, 0));
       p.teleport(lobbyWorld.getSpawnLocation());
     }
@@ -289,15 +277,7 @@ public class Lobby implements ChatRoom {
     }
     
     if (teleport) {
-      p.getInventory().clear();
-      p.removePotionEffect(PotionEffectType.SATURATION);
-      
       p.teleport(mgr.getMainWorld().getSpawnLocation());
-      persistence.loadInventory(p, p.getWorld().getName());
-      if (ps_persistence.hasEntry(p)) {
-        ps_persistence.popPlayerState(p);
-      }
-      
       tracker.setState(p, PlayerState.ONLINE);
     }
     if (message != null) MessageUtil.sendToRoom(this, message);

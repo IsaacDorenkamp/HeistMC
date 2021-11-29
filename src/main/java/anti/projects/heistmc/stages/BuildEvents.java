@@ -166,8 +166,6 @@ public class BuildEvents implements Listener {
   public void playerTeleport(PlayerTeleportEvent evt) {
     if (isForBuild(evt)) {
       if (!evt.getTo().getWorld().equals(world.getWorld())) {
-        boolean loaded = world.getInvPersist().loadInventory(evt.getPlayer(), evt.getTo().getWorld().getName());
-        if (!loaded) evt.getPlayer().getInventory().clear();
         world.removePlayer(evt.getPlayer(), false);
       }
     } else {
